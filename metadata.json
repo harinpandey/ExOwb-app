@@ -1,0 +1,6 @@
+{
+  "name": "ExOwn",
+  "description": "Student-focused marketplace and campus services ecosystem to exchange, own, and reuse products.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
