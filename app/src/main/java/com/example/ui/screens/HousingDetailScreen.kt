@@ -1,33 +1,25 @@
 package com.example.ui.screens
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.NearMe
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -36,7 +28,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,8 +36,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -54,45 +43,43 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.data.model.HousingListing
-import com.example.ui.theme.ExOwnBlue
-import com.example.ui.theme.ExOwnEmerald
-import com.example.ui.theme.ExOwnNavy
-import com.example.ui.theme.ExOwnSlate
+import com.example.ui.theme.DarkBorder
+import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.DarkSurfaceCard
+import com.example.ui.theme.ElectricBlueBright
+import com.example.ui.theme.ExOwnTeal
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.TextPrimary
+import com.example.ui.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun HousingDetailScreen(
     housing: HousingListing,
-    onBackClick: () -> Unit,
-    onContactClick: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
-        modifier = modifier.testTag("housing_detail_screen"),
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Campus Housing",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                },
+                title = { Text(housing.title, maxLines = 1, color = TextPrimary) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
+                            tint = TextPrimary
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkSurface)
             )
         },
         bottomBar = {
             Surface(
+                color = DarkSurface,
                 tonalElevation = 8.dp,
-                shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, DarkBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -101,310 +88,141 @@ fun HousingDetailScreen(
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = onContactClick,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Chat,
-                            contentDescription = null,
-                            tint = ExOwnBlue,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Message", fontWeight = FontWeight.Bold, color = ExOwnBlue)
-                    }
-
                     Button(
-                        onClick = onContactClick,
-                        colors = ButtonDefaults.buttonColors(containerColor = ExOwnBlue),
-                        shape = RoundedCornerShape(12.dp),
+                        onClick = { /* Contact Owner */ },
                         modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("contact_landlord_button"),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = ElectricBlueBright)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Call,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Call Owner", fontWeight = FontWeight.Bold, color = Color.White)
+                        Icon(imageVector = Icons.Default.Call, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text("Call Landlord (${housing.contactPhone})", color = PureWhite, fontWeight = FontWeight.Bold)
                     }
                 }
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+        modifier = modifier
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
+                .testTag("housing_detail_screen"),
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            // Housing Photo
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 10f)
-                    .background(Color(0xFFE2E8F0))
-            ) {
+            item {
                 AsyncImage(
                     model = housing.imageUrl,
                     contentDescription = housing.title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
                 )
-
-                Surface(
-                    color = ExOwnNavy.copy(alpha = 0.85f),
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(12.dp)
-                ) {
-                    Text(
-                        text = housing.roomType.uppercase(),
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-
-                Surface(
-                    color = Color.White.copy(alpha = 0.95f),
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.NearMe,
-                            contentDescription = null,
-                            tint = ExOwnEmerald,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = housing.campusProximity,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ExOwnNavy
-                        )
-                    }
-                }
             }
 
-            // Rent & Title
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = "₹${housing.monthlyRent}",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Black,
-                                color = ExOwnBlue
-                            )
-                        )
-                        Text(
-                            text = " / month",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ExOwnSlate,
-                            modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-                        )
-                    }
-
-                    Surface(
-                        color = ExOwnEmerald.copy(alpha = 0.12f),
-                        shape = RoundedCornerShape(6.dp)
+            item {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Text(
+                            text = "₹${housing.rentPrice.toInt()}/month",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = ElectricBlueBright
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = ExOwnTeal.copy(alpha = 0.2f)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Verified,
-                                contentDescription = null,
-                                tint = ExOwnEmerald,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Verified Student Hostels",
-                                fontSize = 11.sp,
+                                text = housing.type,
+                                color = ExOwnTeal,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ExOwnEmerald
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = housing.title,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Place,
-                        contentDescription = null,
-                        tint = ExOwnSlate,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = housing.locality,
-                        fontSize = 13.sp,
-                        color = ExOwnSlate
+                        text = housing.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
                     )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = ElectricBlueBright,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "${housing.address} • ${housing.distanceToCampus}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
             // Amenities
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = CardDefaults.outlinedCardBorder()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Included Amenities",
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        housing.amenities.forEach { amenity ->
-                            Surface(
-                                color = Color(0xFFF1F5F9),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurfaceCard),
+                    border = BorderStroke(1.dp, DarkBorder)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Amenities & Facilities Included",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            housing.amenities.forEach { am ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = DarkBorder
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = ExOwnEmerald,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = amenity,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = ExOwnNavy
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = ExOwnTeal, modifier = Modifier.size(14.dp))
+                                        Text(text = am, color = TextPrimary, fontSize = 12.sp)
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Contact Info Card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = CardDefaults.outlinedCardBorder()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Property Manager / Student Contact",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ExOwnSlate
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = housing.contactName,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = housing.contactPhone,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = ExOwnBlue
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Renter Safety Check
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Security,
-                        contentDescription = null,
-                        tint = ExOwnBlue,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = "ExOwn Student Housing Advisory",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Never transfer token money without physically visiting the room or hostel. Verify lock-in periods and electricity billing with the warden or owner.",
-                            fontSize = 11.sp,
-                            color = ExOwnSlate,
-                            lineHeight = 15.sp
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

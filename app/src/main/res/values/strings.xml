@@ -1,4 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ExOwn</string>
-    <string name="default_web_client_id" translatable="false">exown_default_web_client_id</string>
 </resources>

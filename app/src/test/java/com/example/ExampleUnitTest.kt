@@ -18,7 +18,7 @@ class ExampleUnitTest {
         val repo = ExOwnRepository()
         val listings = repo.listings.value
         assertTrue("Listings should not be empty", listings.isNotEmpty())
-        val firefox = repo.getListingById("cmp02n48h005kxxf6tre4zcpc")
+        val firefox = repo.getListingById("lpu-cycle-firefox")
         assertNotNull("Firefox cycle listing should exist", firefox)
         assertEquals("Firefox Geared Cycle (21 Speed)", firefox?.title)
     }
@@ -47,7 +47,7 @@ class ExampleUnitTest {
     @Test
     fun testToggleSaveListing() {
         val repo = ExOwnRepository()
-        val id = "cmp02n410005ixxf6q1sa6pku"
+        val id = "srm-cycle-hero"
         assertFalse(repo.savedListingIds.value.contains(id))
         repo.toggleSave(id)
         assertTrue(repo.savedListingIds.value.contains(id))

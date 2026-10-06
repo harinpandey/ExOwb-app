@@ -1,5 +1,8 @@
 package com.example.data.repository
 
+import android.content.Context
+import android.content.SharedPreferences
+import com.example.data.model.Campus
 import com.example.data.model.CampusServiceItem
 import com.example.data.model.ChatMessage
 import com.example.data.model.Conversation
@@ -13,40 +16,194 @@ import com.example.data.model.StudentUser
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import java.util.UUID
 
 class ExOwnRepository {
 
-    private val _campuses = listOf(
-        "Main Campus (Lawgate)",
-        "North Campus (BH-1 to BH-4)",
-        "South Campus (Hostel Block C & D)",
-        "East Campus (Girls Hostels 1-3)",
-        "Tech Park Campus"
+    companion object {
+        private const val PREFS_NAME = "exown_campus_preferences"
+        private const val KEY_SAVED_CAMPUS_ID = "saved_campus_id"
+        private const val KEY_SAVED_LISTINGS = "saved_listing_ids"
+        private var sharedPreferences: SharedPreferences? = null
+
+        fun initPersistence(context: Context) {
+            sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        }
+
+        fun getSavedCampusId(): String? {
+            return sharedPreferences?.getString(KEY_SAVED_CAMPUS_ID, null)
+        }
+
+        fun saveSelectedCampusId(campusId: String) {
+            sharedPreferences?.edit()?.putString(KEY_SAVED_CAMPUS_ID, campusId)?.apply()
+        }
+
+        fun getStoredSavedListingIds(): Set<String> {
+            return sharedPreferences?.getStringSet(KEY_SAVED_LISTINGS, emptySet()) ?: emptySet()
+        }
+
+        fun storeSavedListingIds(ids: Set<String>) {
+            sharedPreferences?.edit()?.putStringSet(KEY_SAVED_LISTINGS, ids)?.apply()
+        }
+    }
+
+    val lpuCampus = Campus(
+        id = "lpu",
+        code = "LPU",
+        name = "Lovely Professional University",
+        city = "Phagwara",
+        state = "Punjab",
+        studentCount = 35000,
+        activeListingsCount = 2340,
+        verificationDomain = "@lpu.in",
+        zones = listOf("Uni Mall", "Block 34", "BH-1 to BH-8", "Law Gate", "Cheema PG Belt"),
+        popularCollections = listOf("LPU Hostel Essentials", "Engineering Maths Books", "Campus Cycles"),
+        moveOutActive = true
     )
-    val campuses: List<String> get() = _campuses
 
-    private val _selectedCampus = MutableStateFlow("North Campus (BH-1 to BH-4)")
-    val selectedCampus: StateFlow<String> = _selectedCampus.asStateFlow()
+    val srmCampus = Campus(
+        id = "srm",
+        code = "SRM",
+        name = "SRM Institute of Science and Technology",
+        city = "Kattankulathur",
+        state = "Tamil Nadu",
+        studentCount = 42000,
+        activeListingsCount = 1890,
+        verificationDomain = "@srmist.edu.in",
+        zones = listOf("Tech Park", "UB Building", "Java Canteen", "Potheri Gate", "Estancia PG Belt"),
+        popularCollections = listOf("SRM Tech Gadgets", "Bicycles & EV Scooters", "Estancia Furnishings"),
+        moveOutActive = false
+    )
 
-    fun setCampus(campus: String) {
+    val vitCampus = Campus(
+        id = "vit",
+        code = "VIT",
+        name = "Vellore Institute of Technology",
+        city = "Vellore",
+        state = "Tamil Nadu",
+        studentCount = 38000,
+        activeListingsCount = 2150,
+        verificationDomain = "@vitstudent.ac.in",
+        zones = listOf("SJT Complex", "Technology Tower", "Green Tower", "Foodys Hub", "All Mart", "MH-A to MH-Q"),
+        popularCollections = listOf("VIT Coding Laptops", "Engineering Textbooks", "Lab Coats & Drafters"),
+        moveOutActive = true
+    )
+
+    val cuCampus = Campus(
+        id = "cu",
+        code = "CU",
+        name = "Chandigarh University",
+        city = "Mohali",
+        state = "Punjab",
+        studentCount = 31000,
+        activeListingsCount = 1420,
+        verificationDomain = "@cumail.in",
+        zones = listOf("Academic Block 1", "Fountain Park", "North Campus Hostel", "Kharar PG Belt"),
+        popularCollections = listOf("CU Hostel Essentials", "Aeronautical & CS Notes", "Room Furniture"),
+        moveOutActive = false
+    )
+
+    val bitsCampus = Campus(
+        id = "bits",
+        code = "BITS",
+        name = "BITS Pilani",
+        city = "Pilani",
+        state = "Rajasthan",
+        studentCount = 18000,
+        activeListingsCount = 1250,
+        verificationDomain = "@pilani.bits-pilani.ac.in",
+        zones = listOf("Clock Tower", "Rotunda", "FD-II & FD-III", "ANC Canteen", "Vyas & Krishna Bhawan"),
+        popularCollections = listOf("BITS Coding Gear", "Reference Textbooks", "Cycle Exchange"),
+        moveOutActive = false
+    )
+
+    val thaparCampus = Campus(
+        id = "thapar",
+        code = "THAPAR",
+        name = "Thapar Institute of Eng. & Tech.",
+        city = "Patiala",
+        state = "Punjab",
+        studentCount = 16000,
+        activeListingsCount = 980,
+        verificationDomain = "@thapar.edu",
+        zones = listOf("COS Complex", "Nirvana Canteen", "Library Lawn", "Hostel J & K", "Main Gate"),
+        popularCollections = listOf("Thapar Mech Drafters", "Hostel Monitors", "Stationery & Notes"),
+        moveOutActive = true
+    )
+
+    val manipalCampus = Campus(
+        id = "manipal",
+        code = "MANIPAL",
+        name = "Manipal Academy of Higher Education",
+        city = "Manipal",
+        state = "Karnataka",
+        studentCount = 28000,
+        activeListingsCount = 1640,
+        verificationDomain = "@learner.manipal.edu",
+        zones = listOf("Tiger Circle", "Student Plaza", "MIT Quadrangle", "KMC Food Court", "Block 10 & 11"),
+        popularCollections = listOf("Manipal Scooters & Cycles", "Medical Textbooks", "Hostel Appliances"),
+        moveOutActive = false
+    )
+
+    val amityCampus = Campus(
+        id = "amity",
+        code = "AMITY",
+        name = "Amity University",
+        city = "Noida",
+        state = "Uttar Pradesh",
+        studentCount = 32000,
+        activeListingsCount = 1390,
+        verificationDomain = "@amity.edu",
+        zones = listOf("H-Block Arc", "Central Plaza", "Gate 2 Canteen", "E-Block Amphitheatre"),
+        popularCollections = listOf("Amity Design Gear", "Laptops & Monitors", "Fashion & Study"),
+        moveOutActive = false
+    )
+
+    private val _campuses = listOf(
+        lpuCampus, srmCampus, vitCampus, cuCampus, bitsCampus, thaparCampus, manipalCampus, amityCampus
+    )
+    val campuses: List<Campus> = _campuses
+
+    private fun loadInitialCampus(): Campus {
+        val savedId = getSavedCampusId()
+        return _campuses.find { it.id.equals(savedId, ignoreCase = true) } ?: lpuCampus
+    }
+
+    private val _selectedCampus = MutableStateFlow(loadInitialCampus())
+    val selectedCampus: StateFlow<Campus> = _selectedCampus.asStateFlow()
+
+    fun setCampus(campus: Campus) {
         _selectedCampus.value = campus
+        saveSelectedCampusId(campus.id)
+    }
+
+    fun setCampusById(campusId: String) {
+        val found = _campuses.find { it.id.equals(campusId, ignoreCase = true) }
+        if (found != null) {
+            setCampus(found)
+        }
+    }
+
+    fun getCampusScopedListings(campusId: String): List<ProductListing> {
+        return _listings.value.filter { it.campusId.equals(campusId, ignoreCase = true) }
     }
 
     private val _currentUser = MutableStateFlow(
         StudentUser(
             id = "current-user-1",
-            name = "Aarav Patel",
-            email = "aarav.p@campus.edu",
-            university = "Apex Institute of Technology",
-            campus = "North Campus",
+            name = "Hari Pandey",
+            email = "hari.pandey@lpu.in",
+            university = "Lovely Professional University",
+            campus = "LPU • Phagwara",
+            campusId = "lpu",
             hostel = "BH-4, Room 312",
             isVerified = true,
-            itemsListed = 3,
-            itemsRehomed = 7,
-            moneySaved = 14250.0,
-            co2SavedKg = 38
+            activeListings = 3,
+            soldListings = 7,
+            totalSavedInr = 14250.0,
+            trustScore = 98,
+            department = "Computer Science & Engineering",
+            year = "3rd Year"
         )
     )
     val currentUser: StateFlow<StudentUser> = _currentUser.asStateFlow()
@@ -55,7 +212,7 @@ class ExOwnRepository {
         _currentUser.value = user
     }
 
-    private val categories = listOf(
+    val categories: List<ListingCategory> = listOf(
         ListingCategory("all", "All", "apps", 28),
         ListingCategory("bikes-transport", "Bicycles", "directions_bike", 8),
         ListingCategory("computers-laptops", "Laptops & PCs", "laptop", 6),
@@ -68,544 +225,399 @@ class ExOwnRepository {
         ListingCategory("services", "Campus Services", "build", 6)
     )
 
-    fun getCategories(): List<ListingCategory> = categories
-
     private val initialListings = listOf(
         ProductListing(
-            id = "cmp02n48h005kxxf6tre4zcpc",
-            title = "Firefox Geared Cycle (21 Speed)",
-            price = 4500.0,
-            originalPrice = 11999.0,
+            id = "item-1",
+            title = "Hero Sprint Pro 21-Speed Mountain Cycle",
+            price = 3800.0,
+            originalPrice = 9500.0,
             listingType = ListingType.SELL,
             condition = ProductCondition.GOOD,
             categoryId = "bikes-transport",
             categoryName = "Bicycles",
-            description = "Well maintained Firefox geared cycle. 21-speed Shimano gears, dual disc brakes, brand new mudguards and bell. Perfect for campus commuting between hostels and lecture halls.",
+            description = "Dual disc brakes, front suspension, tuned gear shifter. Serviced last month at Uni Mall cycle shop. Free cable lock included.",
             imageUrl = "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800&q=80",
-            location = "BH-1 Cycle Stand",
+            location = "BH-4 Bicycle Stand",
+            campusId = "lpu",
+            campusCode = "LPU",
+            campusCity = "Phagwara",
             isUrgent = true,
-            isVerified = true,
-            sellerId = "seed-user-1",
-            sellerName = "Rahul Sharma",
-            sellerDepartment = "Mechanical Eng, 4th Year",
+            sellerId = "user-2",
+            sellerName = "Aman Sharma",
             sellerRating = 4.9,
+            sellerDepartment = "Mechanical Engineering",
             isExchangeEligible = true,
-            exchangePreferences = "Looking for an acoustic guitar or monitor",
-            createdAt = "2 hours ago"
+            exchangePreferences = "Looking for electric kettle or study lamp"
         ),
         ProductListing(
-            id = "cmp1fdsaj0001ef3xs50y8ce5",
-            title = "Geared Bicycle for Rent",
-            price = 50.0,
-            originalPrice = 80.0,
-            listingType = ListingType.RENT,
-            condition = ProductCondition.GOOD,
-            categoryId = "bikes-transport",
-            categoryName = "Bicycles",
-            description = "Available for daily or weekly rent. ₹50/day or ₹250/week. Clean chain, smooth suspension, helmet included if needed.",
-            imageUrl = "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800&q=80",
-            location = "BH-1 Cycle Stand",
-            isUrgent = false,
-            isVerified = true,
-            sellerId = "seed-user-1",
-            sellerName = "Rahul Sharma",
-            sellerDepartment = "Mechanical Eng, 4th Year",
-            sellerRating = 4.9,
-            rentalDurationUnit = "per day",
-            createdAt = "5 hours ago"
-        ),
-        ProductListing(
-            id = "cmp1fdvo20004ef3xafw6c9bh",
-            title = "Gaming Laptop (RTX 3060) - Hourly / Daily",
-            price = 200.0,
-            originalPrice = 350.0,
-            listingType = ListingType.RENT,
-            condition = ProductCondition.LIKE_NEW,
-            categoryId = "computers-laptops",
-            categoryName = "Laptops & PCs",
-            description = "Rent high-spec laptop for CAD projects, machine learning model training, or gaming tournaments over the weekend. 16GB RAM, RTX 3060 6GB.",
-            imageUrl = "https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800&q=80",
-            location = "BH-4, Block A",
-            isUrgent = false,
-            isVerified = true,
-            sellerId = "seed-user-1",
-            sellerName = "Rahul Sharma",
-            sellerDepartment = "Computer Science, 4th Year",
-            sellerRating = 4.9,
-            rentalDurationUnit = "per day",
-            createdAt = "Yesterday"
-        ),
-        ProductListing(
-            id = "cmp02n410005ixxf6q1sa6pku",
-            title = "MacBook Air M1 - 16GB RAM (Space Grey)",
-            price = 62000.0,
-            originalPrice = 89900.0,
+            id = "item-2",
+            title = "Higher Engineering Mathematics (B.S. Grewal, 44th Edition)",
+            price = 420.0,
+            originalPrice = 999.0,
             listingType = ListingType.SELL,
-            condition = ProductCondition.GOOD,
-            categoryId = "computers-laptops",
-            categoryName = "Laptops & PCs",
-            description = "Apple M1 chip with upgraded 16GB unified RAM and 256GB SSD. Battery health at 91%. Comes with original MagSafe charger and protective laptop sleeve.",
-            imageUrl = "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800&q=80",
-            location = "BH-4, Block A",
-            isUrgent = true,
-            isVerified = true,
-            sellerId = "seed-user-1",
-            sellerName = "Rahul Sharma",
-            sellerDepartment = "Computer Science, 4th Year",
-            sellerRating = 4.9,
-            isExchangeEligible = false,
-            createdAt = "1 day ago"
-        ),
-        ProductListing(
-            id = "cmp02n3m1005gxxf6xlrsdd7q",
-            title = "iPhone 13 - 128GB - Midnight Blue",
-            price = 32000.0,
-            originalPrice = 59900.0,
-            listingType = ListingType.SELL,
-            condition = ProductCondition.GOOD,
-            categoryId = "mobiles-gadgets",
-            categoryName = "Mobiles",
-            description = "Flawless condition, always used with Spigen case and tempered glass. 88% battery health, bill and box available. Moving abroad for masters.",
-            imageUrl = "https://images.unsplash.com/photo-1632661674596-df8be070a5c5?w=800&q=80",
-            location = "BH-4, Block A",
-            isUrgent = false,
-            isVerified = true,
-            sellerId = "seed-user-2",
-            sellerName = "Ananya Sen",
-            sellerDepartment = "BioTech, 3rd Year",
-            sellerRating = 5.0,
-            isExchangeEligible = true,
-            exchangePreferences = "iPad Air with pencil support",
-            createdAt = "2 days ago"
-        ),
-        ProductListing(
-            id = "cmp03d6nt000bv3nnnswutvgc",
-            title = "Ergonomic Mesh Study Chair with Lumbar Support",
-            price = 399.0,
-            originalPrice = 1800.0,
-            listingType = ListingType.SELL,
-            condition = ProductCondition.GOOD,
-            categoryId = "furniture-hostel",
-            categoryName = "Hostel Furniture",
-            description = "Super comfortable ergonomic mesh chair for late-night exam prep and coding sessions. Height adjustable with smooth rolling wheels.",
-            imageUrl = "https://images.unsplash.com/photo-1580481077195-c3a821a5060f?w=800&q=80",
-            location = "Lawgate Hostels",
-            isUrgent = false,
-            isVerified = false,
-            sellerId = "seed-user-3",
-            sellerName = "Rishikesh",
-            sellerDepartment = "Civil Eng, 2nd Year",
-            sellerRating = 4.7,
-            createdAt = "3 days ago"
-        ),
-        ProductListing(
-            id = "prod-book-halliday",
-            title = "Halliday, Resnick & Walker - Fundamentals of Physics (Extended)",
-            price = 450.0,
-            originalPrice = 1450.0,
-            listingType = ListingType.EXCHANGE,
             condition = ProductCondition.LIKE_NEW,
             categoryId = "books-sports-hobbies",
             categoryName = "Books & Study",
-            description = "10th edition textbook with zero pen markings. Essential for 1st & 2nd year engineering physics. Willing to sell or exchange for Cormen Algorithms book.",
+            description = "Clean copy without markings or torn pages. Essential for B.Tech Semester 1 to 4 syllabus. Includes handwritten formula cheatsheet.",
             imageUrl = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&q=80",
-            location = "Girls Hostel 2 Gate",
-            isUrgent = false,
-            isVerified = true,
-            sellerId = "seed-user-4",
-            sellerName = "Priya Deshmukh",
-            sellerDepartment = "Electrical Eng, 2nd Year",
+            location = "Block 34 Central Library",
+            campusId = "lpu",
+            campusCode = "LPU",
+            campusCity = "Phagwara",
+            sellerId = "user-3",
+            sellerName = "Priya Nair",
             sellerRating = 5.0,
-            isExchangeEligible = true,
-            exchangePreferences = "CLRS Introduction to Algorithms or Discrete Math textbook",
-            createdAt = "4 hours ago"
+            sellerDepartment = "Electronics & Comm."
         ),
         ProductListing(
-            id = "prod-hostel-induction",
-            title = "Hostel Induction Cooker (2000W) + Non-Stick Kadhai",
-            price = 850.0,
+            id = "item-3",
+            title = "Kaff Electric Kettle & Induction Stove Combo",
+            price = 1100.0,
             originalPrice = 2400.0,
             listingType = ListingType.SELL,
             condition = ProductCondition.GOOD,
             categoryId = "electronics-appliances",
             categoryName = "Appliances",
-            description = "Lifesaver for hostel midnight Maggi, chai, and quick meals. Preset Indian cooking menus, auto-off timer, non-stick pan included.",
-            imageUrl = "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=800&q=80",
-            location = "BH-2, Block C",
-            isUrgent = true,
-            isVerified = true,
-            sellerId = "current-user-1",
-            sellerName = "Aarav Patel (You)",
-            sellerDepartment = "Computer Science",
-            sellerRating = 4.8,
-            createdAt = "Today"
+            description = "1.8L quick boiling stainless kettle and 1200W single burner induction plate. Perfect for midnight Maggi and hot coffee during exam week.",
+            imageUrl = "https://images.unsplash.com/photo-1585515320310-259814833e62?w=800&q=80",
+            location = "GH-3 Gate 2",
+            campusId = "lpu",
+            campusCode = "LPU",
+            campusCity = "Phagwara",
+            sellerId = "user-4",
+            sellerName = "Simran Kaur",
+            sellerRating = 4.7
         ),
         ProductListing(
-            id = "prod-badminton-set",
-            title = "Yonex Nanoray 18i Badminton Racket Set + Mavis Shuttles",
-            price = 700.0,
-            originalPrice = 1950.0,
+            id = "item-4",
+            title = "Ergonomic Mesh Study Chair with Lumbar Support",
+            price = 1450.0,
+            originalPrice = 3800.0,
+            listingType = ListingType.SELL,
+            condition = ProductCondition.LIKE_NEW,
+            categoryId = "furniture-hostel",
+            categoryName = "Hostel Furniture",
+            description = "Breathable mesh back, hydraulic height adjustment, smooth nylon casters. Bought in Jan 2024, selling due to hostel room change.",
+            imageUrl = "https://images.unsplash.com/photo-1580481077195-c3a821a58875?w=800&q=80",
+            location = "Law Gate Cheema PG",
+            campusId = "lpu",
+            campusCode = "LPU",
+            campusCity = "Phagwara",
+            isUrgent = true,
+            sellerId = "current-user-1",
+            sellerName = "Hari Pandey",
+            sellerRating = 4.9
+        ),
+        ProductListing(
+            id = "item-5",
+            title = "Casio fx-991EX ClassWiz Scientific Calculator",
+            price = 850.0,
+            originalPrice = 1495.0,
             listingType = ListingType.SELL,
             condition = ProductCondition.LIKE_NEW,
             categoryId = "books-sports-hobbies",
             categoryName = "Books & Study",
-            description = "Graphite lightweight racket with BG65 titanium stringing done at 24lbs. Includes 3 unopened Yonex Mavis 350 nylon shuttles.",
-            imageUrl = "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=800&q=80",
-            location = "Campus Sports Complex",
-            isUrgent = false,
-            isVerified = true,
-            sellerId = "seed-user-5",
-            sellerName = "Vikram Reddy",
-            sellerDepartment = "B.Arch, 3rd Year",
-            sellerRating = 4.9,
-            createdAt = "Yesterday"
+            description = "High-resolution natural textbook display, 552 functions. Solar + battery dual power. Permitted in university end-term exams.",
+            imageUrl = "https://images.unsplash.com/photo-1611125832047-1d7ad1e8e48f?w=800&q=80",
+            location = "SJT Complex Floor 3",
+            campusId = "vit",
+            campusCode = "VIT",
+            campusCity = "Vellore",
+            sellerId = "user-5",
+            sellerName = "Rahul Verma",
+            sellerRating = 4.8
         ),
         ProductListing(
-            id = "prod-sony-headphones",
-            title = "Sony WH-1000XM4 Active Noise Cancelling Headphones",
-            price = 11900.0,
-            originalPrice = 24990.0,
-            listingType = ListingType.EXCHANGE,
+            id = "item-6",
+            title = "Hercules Roadeo A50 26T Alloy Bicycle",
+            price = 4200.0,
+            originalPrice = 11000.0,
+            listingType = ListingType.SELL,
+            condition = ProductCondition.GOOD,
+            categoryId = "bikes-transport",
+            categoryName = "Bicycles",
+            description = "Lightweight alloy frame, front & rear disc brakes, smooth Shimano shifters. Ideal for daily commute from Potheri to Tech Park.",
+            imageUrl = "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800&q=80",
+            location = "UB Tech Park Stand",
+            campusId = "srm",
+            campusCode = "SRM",
+            campusCity = "Kattankulathur",
+            sellerId = "user-6",
+            sellerName = "Karthik R",
+            sellerRating = 4.9
+        ),
+        ProductListing(
+            id = "item-7",
+            title = "Logitech MX Master 3S Wireless Mouse (Graphite)",
+            price = 4500.0,
+            originalPrice = 8995.0,
+            listingType = ListingType.SELL,
             condition = ProductCondition.LIKE_NEW,
-            categoryId = "mobiles-gadgets",
-            categoryName = "Mobiles",
-            description = "Industry-leading noise cancellation, perfect for studying in noisy hostel dorms and library. Includes hard travel case, aux cable, airline adapter.",
-            imageUrl = "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80",
-            location = "Library Block Study Area",
-            isUrgent = false,
-            isVerified = true,
-            sellerId = "seed-user-6",
-            sellerName = "Meera Nair",
-            sellerDepartment = "Design & Media, 4th Year",
-            sellerRating = 5.0,
-            isExchangeEligible = true,
-            exchangePreferences = "Mirrorless camera lens (Sony E-mount) or DJI gimbal",
-            createdAt = "3 hours ago"
+            categoryId = "computers-laptops",
+            categoryName = "Laptops & PCs",
+            description = "Quiet clicks, 8K DPI any-surface sensor, MagSpeed electromagnetic wheel. Bluetooth and Logi Bolt receiver with box.",
+            imageUrl = "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=800&q=80",
+            location = "Academic Block 1",
+            campusId = "cu",
+            campusCode = "CU",
+            campusCity = "Mohali",
+            sellerId = "user-7",
+            sellerName = "Jaspreet Singh",
+            sellerRating = 5.0
+        ),
+        ProductListing(
+            id = "item-8",
+            title = "Dell UltraSharp 24-inch IPS Monitor (USB-C)",
+            price = 8500.0,
+            originalPrice = 18000.0,
+            listingType = ListingType.SELL,
+            condition = ProductCondition.LIKE_NEW,
+            categoryId = "computers-laptops",
+            categoryName = "Laptops & PCs",
+            description = "FHD InfinityEdge display with 65W USB-C power delivery, HDMI, DP. Height and pivot adjustable stand. Bill and box available.",
+            imageUrl = "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&q=80",
+            location = "Rotunda Clock Tower",
+            campusId = "bits",
+            campusCode = "BITS",
+            campusCity = "Pilani",
+            sellerId = "user-8",
+            sellerName = "Devansh Gupta",
+            sellerRating = 4.9
         )
     )
 
     private val _listings = MutableStateFlow<List<ProductListing>>(initialListings)
     val listings: StateFlow<List<ProductListing>> = _listings.asStateFlow()
 
-    private val _savedListingIds = MutableStateFlow<Set<String>>(
-        setOf("cmp02n48h005kxxf6tre4zcpc", "prod-book-halliday")
-    )
+    private val _savedListingIds = MutableStateFlow<Set<String>>(getStoredSavedListingIds())
     val savedListingIds: StateFlow<Set<String>> = _savedListingIds.asStateFlow()
 
     fun toggleSave(id: String) {
-        _savedListingIds.update { set ->
-            if (set.contains(id)) set - id else set + id
+        val current = _savedListingIds.value.toMutableSet()
+        if (current.contains(id)) {
+            current.remove(id)
+        } else {
+            current.add(id)
         }
-        _listings.update { current ->
-            current.map { if (it.id == id) it.copy(isSaved = !it.isSaved) else it }
-        }
+        _savedListingIds.value = current
+        storeSavedListingIds(current)
     }
 
     fun addListing(newListing: ProductListing) {
-        _listings.update { listOf(newListing) + it }
-        _currentUser.update { it.copy(itemsListed = it.itemsListed + 1) }
+        val updated = listOf(newListing) + _listings.value
+        _listings.value = updated
     }
 
     fun markAsSold(id: String) {
-        _listings.update { current ->
-            current.map { if (it.id == id) it.copy(isSold = true) else it }
+        val updated = _listings.value.map {
+            if (it.id == id) it.copy(isSold = true) else it
         }
-        _currentUser.update {
-            it.copy(
-                itemsRehomed = it.itemsRehomed + 1,
-                moneySaved = it.moneySaved + 1200.0,
-                co2SavedKg = it.co2SavedKg + 5
-            )
-        }
+        _listings.value = updated
     }
 
     fun deleteListing(id: String) {
-        _listings.update { current -> current.filterNot { it.id == id } }
+        _listings.value = _listings.value.filter { it.id != id }
     }
 
     fun getListingById(id: String): ProductListing? {
         return _listings.value.find { it.id == id }
     }
 
-    // Housing Listings
-    private val housingListings = listOf(
+    private val initialHousingListings = listOf(
         HousingListing(
             id = "house-1",
-            title = "Cozy 1 BHK Flat near Lawgate Campus",
-            locality = "Lawgate Colony, Behind Tech Park",
-            campusProximity = "350m from Campus Gate 2",
-            monthlyRent = 7500,
-            roomType = "1 BHK Private",
-            furnishedStatus = "Fully Furnished",
-            amenities = listOf("High-Speed WiFi", "Air Conditioning", "RO Drinking Water", "Power Backup", "Geyser"),
-            imageUrl = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80",
-            contactName = "Suresh Verma (Owner)",
-            contactPhone = "+91 98765 43210",
-            isVerified = true
+            title = "Single Room in 3BHK Flat (Attached Balcony & Washroom)",
+            rentPrice = 6500.0,
+            deposit = 10000.0,
+            type = "Flatshare",
+            occupancy = "Single",
+            distanceToCampus = "450m from Law Gate",
+            address = "Green Valley Apartments, Near Cheema PG, Law Gate",
+            campusId = "lpu",
+            amenities = listOf("WiFi 100Mbps", "AC", "Power Backup", "Geyser", "RO Water", "Parking"),
+            imageUrl = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80"
         ),
         HousingListing(
             id = "house-2",
-            title = "Premium 2-Sharing Student PG with Food",
-            locality = "Adarsh Nagar, North Campus",
-            campusProximity = "500m walk to Central Library",
-            monthlyRent = 6200,
-            roomType = "2-Sharing PG",
-            furnishedStatus = "Fully Furnished",
-            amenities = listOf("3 Meals Included", "Laundry Service", "Attached Balcony", "Study Table", "CCTV Security"),
-            imageUrl = "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&q=80",
-            contactName = "Green Leaf PG Management",
-            contactPhone = "+91 98123 45678",
-            isVerified = true
-        ),
-        HousingListing(
-            id = "house-3",
-            title = "Spacious Single Room in Shared Apartment",
-            locality = "Green View Enclave",
-            campusProximity = "800m with shuttle service",
-            monthlyRent = 5500,
-            roomType = "Single Private Room",
-            furnishedStatus = "Semi-Furnished",
-            amenities = listOf("Modular Kitchen", "Refrigerator", "Balcony View", "Gym Access", "Bike Parking"),
-            imageUrl = "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80",
-            contactName = "Kunal Sharma (Final Year Student)",
-            contactPhone = "+91 97654 32109",
-            isVerified = true
+            title = "Premium Twin Sharing PG with 3-Time Meals",
+            rentPrice = 7500.0,
+            deposit = 7500.0,
+            type = "Student PG",
+            occupancy = "Double",
+            distanceToCampus = "200m from Main Gate",
+            address = "Royal Residency, GT Road",
+            campusId = "lpu",
+            amenities = listOf("All Meals Included", "Housekeeping", "Laundry", "Gym Access", "Study Tables"),
+            imageUrl = "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&q=80"
         )
     )
 
-    fun getHousingListings(): List<HousingListing> = housingListings
+    fun getHousingListings(): List<HousingListing> = initialHousingListings
 
-    // Roommate Listings
-    private val roommateListings = listOf(
+    val roommateListings = listOf(
         RoommateListing(
             id = "roommate-1",
-            name = "Rohan Malhotra",
+            studentName = "Rohan Mehta",
             gender = "Male",
-            courseYear = "B.Tech CSE, 3rd Year",
-            budget = "₹5,000 - ₹7,000 / month",
-            preferredLocation = "Lawgate or North Campus",
-            lifestyleTags = listOf("Studious & Quiet", "Night Owl", "Non-Smoker", "Tech Enthusiast"),
-            bio = "Looking for a chilled-out roommate to share a 2BHK flat. I code late at night with headphones, respect quiet hours, and like keeping the place clean.",
-            moveInDate = "Next Month"
+            course = "B.Tech CSE 2nd Year",
+            budgetPerMonth = 5500.0,
+            preferredLocation = "Law Gate / Cheema PG Belt",
+            campusId = "lpu",
+            habits = listOf("Non-Smoker", "Night Owl coder", "Keeps room tidy", "Music lover (uses headphones)"),
+            bio = "Looking for a chilled flatmate to split rent in a 2BHK flat. I cook decent North Indian food and study mostly in the evenings."
         ),
         RoommateListing(
             id = "roommate-2",
-            name = "Sanya Kapoor",
+            studentName = "Ananya Desai",
             gender = "Female",
-            courseYear = "M.Sc Data Science, 1st Year",
-            budget = "₹6,000 - ₹8,500 / month",
-            preferredLocation = "Near Gate 1 / East Campus",
-            lifestyleTags = listOf("Early Riser", "Vegetarian", "Clean & Tidy", "Studious"),
-            bio = "Need a flatmate for a furnished apartment near college. Love cooking together and maintaining a quiet environment for studies.",
-            moveInDate = "Immediate"
-        ),
-        RoommateListing(
-            id = "roommate-3",
-            name = "Tanmay Joshi",
-            gender = "Male",
-            courseYear = "Mechanical Engineering, 2nd Year",
-            budget = "₹4,500 - ₹6,000 / month",
-            preferredLocation = "BH Block Colony",
-            lifestyleTags = listOf("Fitness & Gym", "Sports Enthusiast", "Friendly", "Non-Drinker"),
-            bio = "Gym enthusiast and football player. Looking to share rent for a flat within walking distance from campus sports complex.",
-            moveInDate = "15th of this month"
+            course = "B.Des Fashion 3rd Year",
+            budgetPerMonth = 7000.0,
+            preferredLocation = "Near Block 34 / Main Gate",
+            campusId = "lpu",
+            habits = listOf("Early riser", "Quiet environment", "Vegetarian", "Studious"),
+            bio = "Searching for a female roommate for an AC single/shared room with good security and daylight."
         )
     )
 
     fun getRoommates(): List<RoommateListing> = roommateListings
 
-    // Campus Services
-    private val campusServices = listOf(
+    private val initialCampusServices = listOf(
         CampusServiceItem(
             id = "serv-1",
-            title = "Laptop Repair & OS Dual-Boot Installation",
-            price = 299.0,
-            providerName = "Rahul Sharma",
-            providerHostel = "BH-4, Block B",
-            description = "Linux Ubuntu / Windows 11 installation, thermal paste repasting, slow PC cleaning, SSD upgrades on campus.",
-            rating = 4.9,
-            turnaroundTime = "Same Day (2-3 hrs)",
-            imageUrl = "https://images.unsplash.com/photo-1597733336794-12d05021d510?w=800&q=80"
+            title = "Bike & Cycle Repair & Puncture at Hostel Gate",
+            category = "Repair & Maintenance",
+            providerName = "Vikram Cycle Works",
+            campusId = "lpu",
+            rating = 4.8,
+            priceStarting = 50.0,
+            description = "On-campus pickup or doorstep repair at BH-1 to BH-8 gates. Tube change, chain lubrication, brake adjustments.",
+            deliveryTime = "Within 30 mins",
+            tags = listOf("Doorstep", "Fast", "Cash/UPI")
         ),
         CampusServiceItem(
             id = "serv-2",
-            title = "Graphic Design & UI/UX for Club Events & Projects",
-            price = 499.0,
-            providerName = "Aditi Roy",
-            providerHostel = "Girls Hostel 3",
-            description = "Figma prototypes, poster design for campus fests, hackathons, and pitch decks. High resolution files delivered.",
-            rating = 5.0,
-            turnaroundTime = "24-48 Hours",
-            imageUrl = "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=800&q=80"
+            title = "Engineering Assignment & Report Printing & Spiral Binding",
+            category = "Printing & Stationery",
+            providerName = "UniPrint Hub",
+            campusId = "lpu",
+            rating = 4.9,
+            priceStarting = 2.0,
+            description = "High quality color or B&W printouts on 75 GSM paper. Spiral or hard bound project reports delivered to your hostel desk.",
+            deliveryTime = "1-2 Hours",
+            tags = listOf("Per page Rs 2", "Spiral Bound", "Doorstep")
         ),
         CampusServiceItem(
             id = "serv-3",
-            title = "Bicycle Tune-Up, Puncture Repair & Chain Lubrication",
-            price = 149.0,
-            providerName = "Mohit Tanwar",
-            providerHostel = "BH-1 Stand",
-            description = "Get your bicycle ready for the semester. Brake tightening, gear indexing, tube puncture fix right at your hostel gate.",
-            rating = 4.8,
-            turnaroundTime = "1 Hour",
-            imageUrl = "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800&q=80"
+            title = "Python, DSA & Web Dev Peer Tutoring",
+            category = "Academic Peer Tutoring",
+            providerName = "Kunal (Final Year CSE)",
+            campusId = "lpu",
+            rating = 5.0,
+            priceStarting = 350.0,
+            description = "1-on-1 exam prep sessions covering LeetCode basics, Python lab exams, and semester project debug support.",
+            deliveryTime = "Hourly sessions",
+            tags = listOf("Peer Expert", "1-on-1", "Exam Prep")
         )
     )
 
-    fun getCampusServices(): List<CampusServiceItem> = campusServices
+    fun getCampusServices(): List<CampusServiceItem> = initialCampusServices
 
-    // Chat and Conversations
-    private val _conversations = MutableStateFlow<List<Conversation>>(
-        listOf(
-            Conversation(
-                id = "conv-1",
-                listingId = "cmp02n48h005kxxf6tre4zcpc",
-                listingTitle = "Firefox Geared Cycle (21 Speed)",
-                listingPrice = 4500.0,
-                listingImageUrl = "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800&q=80",
-                otherUserName = "Rahul Sharma",
-                otherUserLocation = "BH-1 Cycle Stand",
-                lastMessage = "Yes, you can test ride it today around 5 PM at BH-1 gate!",
-                lastMessageTime = "10:45 AM",
-                unreadCount = 1
-            ),
-            Conversation(
-                id = "conv-2",
-                listingId = "prod-book-halliday",
-                listingTitle = "Halliday, Resnick & Walker - Physics",
-                listingPrice = 450.0,
-                listingImageUrl = "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&q=80",
-                otherUserName = "Priya Deshmukh",
-                otherUserLocation = "Girls Hostel 2 Gate",
-                lastMessage = "Hey! I'm happy to trade for the Cormen book.",
-                lastMessageTime = "Yesterday",
-                unreadCount = 0
-            )
+    private val initialConversations = listOf(
+        Conversation(
+            id = "conv-1",
+            otherUserName = "Aman Sharma",
+            otherUserCampus = "LPU",
+            lastMessage = "Hey! Is the Hero cycle available for a test ride today?",
+            lastTimestamp = "10:45 AM",
+            unreadCount = 1,
+            listingId = "item-1",
+            listingTitle = "Hero Sprint Pro 21-Speed Mountain Cycle",
+            listingPrice = 3800.0,
+            listingImage = "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800&q=80"
+        ),
+        Conversation(
+            id = "conv-2",
+            otherUserName = "Simran Kaur",
+            otherUserCampus = "LPU",
+            lastMessage = "Can you do Rs 3,500? I can pick it up from BH-4 this evening.",
+            lastTimestamp = "Yesterday",
+            unreadCount = 0,
+            listingId = "item-4",
+            listingTitle = "Ergonomic Mesh Study Chair with Lumbar Support",
+            listingPrice = 1450.0,
+            listingImage = "https://images.unsplash.com/photo-1580481077195-c3a821a58875?w=800&q=80"
         )
     )
+
+    private val _conversations = MutableStateFlow(initialConversations)
     val conversations: StateFlow<List<Conversation>> = _conversations.asStateFlow()
 
-    private val _messages = MutableStateFlow<Map<String, List<ChatMessage>>>(
-        mapOf(
-            "conv-1" to listOf(
-                ChatMessage(
-                    id = "m1",
-                    conversationId = "conv-1",
-                    senderName = "Aarav Patel",
-                    text = "Hi Rahul! Is the Firefox cycle still available?",
-                    timestamp = "10:30 AM",
-                    isFromMe = true
-                ),
-                ChatMessage(
-                    id = "m2",
-                    conversationId = "conv-1",
-                    senderName = "Rahul Sharma",
-                    text = "Hey Aarav! Yes it is. Everything is in top condition, just serviced last week.",
-                    timestamp = "10:33 AM",
-                    isFromMe = false
-                ),
-                ChatMessage(
-                    id = "m3",
-                    conversationId = "conv-1",
-                    senderName = "Aarav Patel",
-                    text = "Would you consider ₹4,000 for quick pickup?",
-                    timestamp = "10:36 AM",
-                    isFromMe = true,
-                    isOffer = true,
-                    offerAmount = 4000.0
-                ),
-                ChatMessage(
-                    id = "m4",
-                    conversationId = "conv-1",
-                    senderName = "Rahul Sharma",
-                    text = "Yes, you can test ride it today around 5 PM at BH-1 gate!",
-                    timestamp = "10:45 AM",
-                    isFromMe = false
-                )
-            ),
-            "conv-2" to listOf(
-                ChatMessage(
-                    id = "m201",
-                    conversationId = "conv-2",
-                    senderName = "Aarav Patel",
-                    text = "Hi Priya, I have the Cormen Algorithms book in good condition. Would you like to exchange for Halliday Physics?",
-                    timestamp = "Yesterday 4:15 PM",
-                    isFromMe = true
-                ),
-                ChatMessage(
-                    id = "m202",
-                    conversationId = "conv-2",
-                    senderName = "Priya Deshmukh",
-                    text = "Hey! I'm happy to trade for the Cormen book.",
-                    timestamp = "Yesterday 5:20 PM",
-                    isFromMe = false
-                )
+    private val _chatMessages = mutableMapOf<String, MutableStateFlow<List<ChatMessage>>>(
+        "conv-1" to MutableStateFlow(
+            listOf(
+                ChatMessage("m-1", "conv-1", "user-2", "Hi Hari, saw your cycle post!", "10:30 AM", isMine = false),
+                ChatMessage("m-2", "conv-1", "current-user-1", "Hey Aman! Yes it is in prime condition.", "10:32 AM", isMine = true),
+                ChatMessage("m-3", "conv-1", "user-2", "Hey! Is the Hero cycle available for a test ride today?", "10:45 AM", isMine = false)
             )
         )
     )
 
-    fun getMessages(conversationId: String): List<ChatMessage> {
-        return _messages.value[conversationId] ?: emptyList()
+    fun getMessagesForConversation(convId: String): StateFlow<List<ChatMessage>> {
+        return _chatMessages.getOrPut(convId) {
+            MutableStateFlow(emptyList())
+        }.asStateFlow()
     }
 
-    fun sendMessage(conversationId: String, text: String, isOffer: Boolean = false, offerAmount: Double? = null) {
-        val newMsg = ChatMessage(
-            id = UUID.randomUUID().toString(),
-            conversationId = conversationId,
-            senderName = _currentUser.value.name,
-            text = text,
-            timestamp = "Just now",
-            isFromMe = true,
-            isOffer = isOffer,
-            offerAmount = offerAmount
-        )
-
-        _messages.update { current ->
-            val list = current[conversationId].orEmpty() + newMsg
-            current + (conversationId to list)
-        }
-
-        _conversations.update { list ->
-            list.map {
-                if (it.id == conversationId) {
-                    it.copy(
-                        lastMessage = if (isOffer) "Offer: ₹${offerAmount?.toInt()}" else text,
-                        lastMessageTime = "Just now",
-                        unreadCount = 0
-                    )
-                } else it
-            }
-        }
-    }
-
-    fun startOrGetConversation(listing: ProductListing): Conversation {
-        val existing = _conversations.value.find { it.listingId == listing.id }
+    fun startOrGetConversation(product: ProductListing): Conversation {
+        val existing = _conversations.value.find { it.listingId == product.id }
         if (existing != null) return existing
 
         val newConv = Conversation(
-            id = "conv-${System.currentTimeMillis()}",
-            listingId = listing.id,
-            listingTitle = listing.title,
-            listingPrice = listing.price,
-            listingImageUrl = listing.imageUrl,
-            otherUserName = listing.sellerName,
-            otherUserLocation = listing.location,
-            lastMessage = "Started chat about ${listing.title}",
-            lastMessageTime = "Just now",
-            unreadCount = 0
+            id = "conv-${UUID.randomUUID()}",
+            otherUserName = product.sellerName,
+            otherUserCampus = product.campusCode,
+            lastMessage = "Started chat about ${product.title}",
+            lastTimestamp = "Just now",
+            listingId = product.id,
+            listingTitle = product.title,
+            listingPrice = product.price,
+            listingImage = product.imageUrl
         )
-
-        val firstMsg = ChatMessage(
-            id = UUID.randomUUID().toString(),
-            conversationId = newConv.id,
-            senderName = _currentUser.value.name,
-            text = "Hi ${listing.sellerName}, I am interested in your listing: \"${listing.title}\". Is it still available?",
-            timestamp = "Just now",
-            isFromMe = true
+        _conversations.value = listOf(newConv) + _conversations.value
+        _chatMessages[newConv.id] = MutableStateFlow(
+            listOf(
+                ChatMessage(
+                    id = "init-${UUID.randomUUID()}",
+                    conversationId = newConv.id,
+                    senderId = "current-user-1",
+                    text = "Hi ${product.sellerName}, is this still available?",
+                    timestamp = "Just now",
+                    isMine = true
+                )
+            )
         )
-
-        _conversations.update { listOf(newConv) + it }
-        _messages.update { it + (newConv.id to listOf(firstMsg)) }
-
         return newConv
+    }
+
+    fun sendMessage(convId: String, text: String, isOffer: Boolean = false, offerAmount: Double? = null) {
+        val flow = _chatMessages.getOrPut(convId) { MutableStateFlow(emptyList()) }
+        val newMsg = ChatMessage(
+            id = "m-${UUID.randomUUID()}",
+            conversationId = convId,
+            senderId = "current-user-1",
+            text = text,
+            timestamp = "Just now",
+            isMine = true,
+            isOffer = isOffer,
+            offerAmount = offerAmount
+        )
+        flow.value = flow.value + newMsg
+
+        // Update last message in conversation
+        _conversations.value = _conversations.value.map {
+            if (it.id == convId) {
+                it.copy(lastMessage = text, lastTimestamp = "Just now", unreadCount = 0)
+            } else it
+        }
     }
 }

@@ -1,11 +1,12 @@
 package com.example.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,59 +14,54 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddPhotoAlternate
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.Campus
 import com.example.data.model.ListingCategory
 import com.example.data.model.ListingType
 import com.example.data.model.ProductCondition
-import com.example.ui.theme.ExOwnBlue
-import com.example.ui.theme.ExOwnEmerald
-import com.example.ui.theme.ExOwnNavy
-import com.example.ui.theme.ExOwnSlate
+import com.example.ui.components.CampusSelector
+import com.example.ui.components.CampusSelectorStyle
+import com.example.ui.theme.DarkBorder
+import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.DarkSurfaceCard
+import com.example.ui.theme.ElectricBlueBright
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.TextMuted
+import com.example.ui.theme.TextPrimary
+import com.example.ui.theme.TextSecondary
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CreateListingScreen(
     categories: List<ListingCategory>,
@@ -86,432 +82,309 @@ fun CreateListingScreen(
     description: String,
     onDescriptionChange: (String) -> Unit,
     isUrgent: Boolean,
-    onUrgentToggle: () -> Unit,
+    onUrgentChange: (Boolean) -> Unit,
     isExchange: Boolean,
-    onExchangeToggle: () -> Unit,
+    onExchangeChange: (Boolean) -> Unit,
     exchangePref: String,
     onExchangePrefChange: (String) -> Unit,
     rentalUnit: String,
     onRentalUnitChange: (String) -> Unit,
     onSubmit: () -> Boolean,
+    onBack: () -> Unit,
+    selectedCampus: Campus? = null,
+    onCampusChange: (Campus) -> Unit = {},
+    campuses: List<Campus> = emptyList(),
     modifier: Modifier = Modifier
 ) {
-    var categoryExpanded by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val selectedCategoryObj = categories.find { it.id == category } ?: categories.getOrNull(1) ?: categories[0]
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-            .testTag("create_listing_screen")
-    ) {
-        Text(
-            text = "Create a Campus Listing",
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onBackground
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Post to Campus Marketplace",
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = TextPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkSurface)
             )
-        )
-        Text(
-            text = "Give your items a second life. Exchange, sell, or rent with classmates.",
-            fontSize = 13.sp,
-            color = ExOwnSlate,
-            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-        )
-
-        // Photo Upload Box
-        Card(
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+        modifier = modifier
+    ) { innerPadding ->
+        LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(130.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .border(2.dp, ExOwnBlue.copy(alpha = 0.4f), RoundedCornerShape(16.dp)),
-            colors = CardDefaults.cardColors(containerColor = ExOwnBlue.copy(alpha = 0.05f))
+                .fillMaxSize()
+                .padding(innerPadding)
+                .testTag("create_listing_screen"),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Surface(
-                        color = ExOwnBlue.copy(alpha = 0.15f),
-                        shape = CircleShape,
-                        modifier = Modifier.size(48.dp)
+            // Target University Campus Field
+            if (selectedCampus != null && campuses.isNotEmpty()) {
+                item {
+                    CampusSelector(
+                        selectedCampus = selectedCampus,
+                        onCampusSelected = onCampusChange,
+                        campuses = campuses,
+                        style = CampusSelectorStyle.FIELD,
+                        label = "Posting Target Campus"
+                    )
+                }
+            }
+
+            // Listing Type Selection (Sell, Exchange, Rent)
+            item {
+                Column {
+                    Text(
+                        text = "Listing Type",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.AddPhotoAlternate,
-                                contentDescription = "Add Photo",
-                                tint = ExOwnBlue,
-                                modifier = Modifier.size(24.dp)
+                        listOf(ListingType.SELL, ListingType.EXCHANGE, ListingType.RENT, ListingType.BUY).forEach { lType ->
+                            val isSelected = type == lType
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onTypeChange(lType) },
+                                label = { Text(if (lType == ListingType.BUY) "Wanted" else lType.label, fontWeight = FontWeight.SemiBold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = ElectricBlueBright,
+                                    selectedLabelColor = PureWhite,
+                                    containerColor = DarkSurfaceCard,
+                                    labelColor = TextSecondary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = if (isSelected) ElectricBlueBright else DarkBorder
+                                )
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Photo Added (Ready to publish)",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ExOwnBlue
-                    )
-                    Text(
-                        text = "Automatic high-resolution campus photo attached",
-                        fontSize = 11.sp,
-                        color = ExOwnSlate
-                    )
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Listing Type Selector
-        Text(
-            text = "I WANT TO:",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Black,
-            color = ExOwnNavy
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            ListingType.values().forEach { t ->
-                FilterChip(
-                    selected = type == t,
-                    onClick = { onTypeChange(t) },
-                    label = {
-                        Text(
-                            text = t.label,
-                            fontWeight = if (type == t) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 12.sp
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = when (t) {
-                            ListingType.SELL -> ExOwnNavy
-                            ListingType.RENT -> Color(0xFFD97706)
-                            ListingType.EXCHANGE -> ExOwnEmerald
-                            ListingType.SERVICE -> ExOwnBlue
-                        },
-                        selectedLabelColor = Color.White
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // Title
-        OutlinedTextField(
-            value = title,
-            onValueChange = {
-                onTitleChange(it)
-                errorMessage = null
-            },
-            label = { Text("Item Title *") },
-            placeholder = { Text("e.g. Firefox Geared Cycle, Engineering Mechanics Book") },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("input_listing_title"),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Category Selector Dropdown
-        ExposedDropdownMenuBox(
-            expanded = categoryExpanded,
-            onExpandedChange = { categoryExpanded = !categoryExpanded },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                value = selectedCategoryObj.name,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Category *") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            ExposedDropdownMenu(
-                expanded = categoryExpanded,
-                onDismissRequest = { categoryExpanded = false }
-            ) {
-                categories.filter { it.id != "all" }.forEach { cat ->
-                    DropdownMenuItem(
-                        text = { Text(cat.name) },
-                        onClick = {
-                            onCategoryChange(cat.id)
-                            categoryExpanded = false
-                        }
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Price Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            OutlinedTextField(
-                value = price,
-                onValueChange = {
-                    onPriceChange(it)
-                    errorMessage = null
-                },
-                label = { Text(if (type == ListingType.RENT) "Rent (₹) *" else "Price (₹) *") },
-                placeholder = { Text("e.g. 450") },
-                leadingIcon = { Text("₹", fontWeight = FontWeight.Bold, color = ExOwnBlue) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                singleLine = true,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("input_listing_price"),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            if (type == ListingType.RENT) {
+            // Title
+            item {
                 OutlinedTextField(
-                    value = rentalUnit,
-                    onValueChange = onRentalUnitChange,
-                    label = { Text("Unit") },
-                    placeholder = { Text("per day") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-            } else {
-                OutlinedTextField(
-                    value = originalPrice,
-                    onValueChange = onOriginalPriceChange,
-                    label = { Text("Original MRP (₹)") },
-                    placeholder = { Text("e.g. 1200") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // Condition Selector
-        Text(
-            text = "CONDITION:",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Black,
-            color = ExOwnNavy
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            ProductCondition.values().forEach { c ->
-                FilterChip(
-                    selected = condition == c,
-                    onClick = { onConditionChange(c) },
-                    label = { Text(c.label, fontSize = 11.sp) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = ExOwnNavy,
-                        selectedLabelColor = Color.White
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Location / Hostel Block
-        OutlinedTextField(
-            value = location,
-            onValueChange = onLocationChange,
-            label = { Text("Pickup Location / Hostel *") },
-            placeholder = { Text("e.g. BH-4 Block A, Lawgate Gate 2") },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("input_listing_location"),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Description
-        OutlinedTextField(
-            value = description,
-            onValueChange = onDescriptionChange,
-            label = { Text("Description") },
-            placeholder = { Text("Provide details about age, accessories, why you're selling, test-ride info...") },
-            minLines = 3,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("input_listing_desc"),
-            shape = RoundedCornerShape(12.dp)
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // Urgent Moving Out Toggle
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = CardDefaults.outlinedCardBorder()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "🔥 Mark as Urgent Deal",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = Color(0xFFEF4444)
+                    value = title,
+                    onValueChange = onTitleChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("form_title_input"),
+                    label = { Text("Item Title") },
+                    placeholder = { Text("e.g., Hero Sprint Cycle 21 Speed or Engineering Maths Book") },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ElectricBlueBright,
+                        unfocusedBorderColor = DarkBorder,
+                        focusedContainerColor = DarkSurfaceCard,
+                        unfocusedContainerColor = DarkSurfaceCard,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
                     )
-                    Text(
-                        text = "Moving out of hostel soon? Highlight your listing to get fast offers.",
-                        fontSize = 11.sp,
-                        color = ExOwnSlate
-                    )
-                }
-                Switch(
-                    checked = isUrgent,
-                    onCheckedChange = { onUrgentToggle() },
-                    colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFEF4444), checkedTrackColor = Color(0xFFFEE2E2))
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Exchange Eligible Toggle
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = CardDefaults.outlinedCardBorder()
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
+            // Pricing
+            item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "🔄 Open to Barter / Exchange",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = ExOwnEmerald
+                    OutlinedTextField(
+                        value = price,
+                        onValueChange = onPriceChange,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("form_price_input"),
+                        label = { Text(if (type == ListingType.BUY) "Max Budget (₹)" else "Selling Price (₹)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = ElectricBlueBright,
+                            unfocusedBorderColor = DarkBorder,
+                            focusedContainerColor = DarkSurfaceCard,
+                            unfocusedContainerColor = DarkSurfaceCard,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
                         )
-                        Text(
-                            text = "Allow peers to offer trades instead of cash",
-                            fontSize = 11.sp,
-                            color = ExOwnSlate
+                    )
+
+                    OutlinedTextField(
+                        value = originalPrice,
+                        onValueChange = onOriginalPriceChange,
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("form_original_price_input"),
+                        label = { Text("Original MRP (₹)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = ElectricBlueBright,
+                            unfocusedBorderColor = DarkBorder,
+                            focusedContainerColor = DarkSurfaceCard,
+                            unfocusedContainerColor = DarkSurfaceCard,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        )
+                    )
+                }
+            }
+
+            // Condition Selector
+            item {
+                Column {
+                    Text(
+                        text = "Condition",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ProductCondition.entries.forEach { cond ->
+                            val isSelected = condition == cond
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onConditionChange(cond) },
+                                label = { Text(cond.label) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = ElectricBlueBright,
+                                    selectedLabelColor = PureWhite,
+                                    containerColor = DarkSurfaceCard,
+                                    labelColor = TextSecondary
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = if (isSelected) ElectricBlueBright else DarkBorder
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Campus Pickup Location / Hostel Block
+            item {
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = onLocationChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("form_location_input"),
+                    label = { Text("Campus Meetup / Hostel Location") },
+                    placeholder = { Text("e.g. BH-4 Gate, Central Library Lawn, or Uni Mall") },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ElectricBlueBright,
+                        unfocusedBorderColor = DarkBorder,
+                        focusedContainerColor = DarkSurfaceCard,
+                        unfocusedContainerColor = DarkSurfaceCard,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
+                    )
+                )
+            }
+
+            // Description
+            item {
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = onDescriptionChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(110.dp)
+                        .testTag("form_description_input"),
+                    label = { Text("Description & Item Details") },
+                    placeholder = { Text("Mention purchase date, condition notes, accessories included...") },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ElectricBlueBright,
+                        unfocusedBorderColor = DarkBorder,
+                        focusedContainerColor = DarkSurfaceCard,
+                        unfocusedContainerColor = DarkSurfaceCard,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
+                    )
+                )
+            }
+
+            // Urgent Moving-out Toggle
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurfaceCard),
+                    border = BorderStroke(1.dp, DarkBorder)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Mark as Urgent / Moving Out",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = "Features your item in the campus urgent banner feed.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                        Switch(
+                            checked = isUrgent,
+                            onCheckedChange = onUrgentChange,
+                            colors = SwitchDefaults.colors(checkedThumbColor = ElectricBlueBright)
                         )
                     }
-                    Switch(
-                        checked = isExchange || type == ListingType.EXCHANGE,
-                        onCheckedChange = { onExchangeToggle() },
-                        colors = SwitchDefaults.colors(checkedThumbColor = ExOwnEmerald, checkedTrackColor = Color(0xFFD1FAE5))
-                    )
-                }
-
-                if (isExchange || type == ListingType.EXCHANGE) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    OutlinedTextField(
-                        value = exchangePref,
-                        onValueChange = onExchangePrefChange,
-                        label = { Text("What items are you looking for?") },
-                        placeholder = { Text("e.g. Looking for acoustic guitar, scientific calculator, or monitor") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    )
                 }
             }
-        }
 
-        if (errorMessage != null) {
-            Spacer(modifier = Modifier.height(10.dp))
-            Surface(
-                color = Color(0xFFFEE2E2),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Submit Button
+            item {
+                Button(
+                    onClick = { onSubmit() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .testTag("submit_listing_button"),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = ElectricBlueBright)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = Color(0xFFDC2626),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = errorMessage ?: "",
-                        color = Color(0xFFDC2626),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
+                        text = "Publish to Campus Feed",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = PureWhite
                     )
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Submit Button
-        Button(
-            onClick = {
-                val success = onSubmit()
-                if (!success) {
-                    errorMessage = "Please enter both a title and a valid price."
-                }
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = ExOwnBlue),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp)
-                .testTag("publish_listing_btn")
-        ) {
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Publish to ExOwn Campus",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
-
-        Spacer(modifier = Modifier.height(30.dp))
     }
 }

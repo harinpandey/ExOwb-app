@@ -1,7 +1,7 @@
 package com.example.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.example.data.model.Campus
 import com.example.data.model.CampusServiceItem
 import com.example.data.model.ChatMessage
 import com.example.data.model.Conversation
@@ -14,12 +14,9 @@ import com.example.data.model.RoommateListing
 import com.example.data.model.StudentUser
 import com.example.data.repository.ExOwnRepository
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import java.util.UUID
 
 enum class AppScreen {
@@ -27,17 +24,18 @@ enum class AppScreen {
     EXPLORE,
     SELL,
     SERVICES,
-    SAVED,
+    INBOX,
     PROFILE,
+    CAMPUS_HUB,
     PRODUCT_DETAIL,
-    CHAT,
-    HOUSING_DETAIL
+    HOUSING_DETAIL,
+    CHAT
 }
 
 enum class ServicesTab {
+    SERVICES,
     HOUSING,
-    ROOMMATES,
-    SERVICES
+    ROOMMATES
 }
 
 class ExOwnViewModel(
@@ -47,27 +45,33 @@ class ExOwnViewModel(
     private val _currentScreen = MutableStateFlow(AppScreen.HOME)
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
 
-    private val screenStack = mutableListOf<AppScreen>()
+    private val screenStack = mutableListOf(AppScreen.HOME)
 
     fun navigateTo(screen: AppScreen) {
-        if (_currentScreen.value != screen) {
-            screenStack.add(_currentScreen.value)
-            _currentScreen.value = screen
-        }
+        if (screen == _currentScreen.value) return
+        screenStack.add(screen)
+        _currentScreen.value = screen
     }
 
     fun navigateBack(): Boolean {
-        return if (screenStack.isNotEmpty()) {
-            _currentScreen.value = screenStack.removeAt(screenStack.size - 1)
-            true
-        } else {
-            false
+        if (screenStack.size > 1) {
+            screenStack.removeAt(screenStack.size - 1)
+            _currentScreen.value = screenStack.last()
+            return true
         }
+        return false
     }
 
-    // Session Authentication Management
-    private val _isAuthenticated = MutableStateFlow(false)
+    // Authentication State
+    private val _isAuthenticated = MutableStateFlow(true)
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
+
+    private val _isDarkTheme = MutableStateFlow(true)
+    val isDarkTheme: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
+
+    fun setDarkTheme(enabled: Boolean) {
+        _isDarkTheme.value = enabled
+    }
 
     fun signInStudent(
         name: String,
@@ -76,46 +80,101 @@ class ExOwnViewModel(
         campus: String,
         hostel: String
     ) {
-        val updatedUser = StudentUser(
-            id = "student-${System.currentTimeMillis()}",
-            name = name,
+        val campusObj = repository.campuses.find { it.name.contains(university, ignoreCase = true) }
+            ?: repository.lpuCampus
+
+        val user = StudentUser(
+            id = "user-${UUID.randomUUID()}",
+            name = name.ifBlank { "Campus Student" },
             email = email,
             university = university,
             campus = campus,
-            hostel = hostel,
-            isVerified = true,
-            itemsListed = 3,
-            itemsRehomed = 7,
-            moneySaved = 14250.0,
-            co2SavedKg = 38
+            campusId = campusObj.id,
+            hostel = hostel.ifBlank { "Hostel Block A" },
+            isVerified = true
         )
-        repository.updateUserSession(updatedUser)
-        repository.setCampus(campus)
+        repository.updateUserSession(user)
+        repository.setCampus(campusObj)
         _isAuthenticated.value = true
     }
 
     fun signOutStudent() {
         _isAuthenticated.value = false
-        _currentScreen.value = AppScreen.HOME
-        screenStack.clear()
     }
 
-    // Repository bindings
-    val campuses: List<String> = repository.campuses
-    val selectedCampus: StateFlow<String> = repository.selectedCampus
-    fun setCampus(campus: String) = repository.setCampus(campus)
+    // Campus Management
+    val campuses: List<Campus> = repository.campuses
+    val selectedCampus: StateFlow<Campus> = repository.selectedCampus
 
+    fun setCampus(campus: Campus) {
+        repository.setCampus(campus)
+    }
+
+    fun selectCampus(campus: Campus) {
+        repository.setCampus(campus)
+    }
+
+    fun setCampus(campusIdentifier: String) {
+        repository.setCampusById(campusIdentifier)
+    }
+
+    fun setCampusById(campusId: String) {
+        repository.setCampusById(campusId)
+    }
+
+    fun selectCampusById(campusId: String) {
+        repository.setCampusById(campusId)
+    }
+
+    fun getCampusScopedListings(campusId: String): List<ProductListing> {
+        return repository.getCampusScopedListings(campusId)
+    }
+
+    private val _campusScopeOnly = MutableStateFlow(true)
+    val campusScopeOnly: StateFlow<Boolean> = _campusScopeOnly.asStateFlow()
+
+    fun toggleCampusScope() {
+        _campusScopeOnly.value = !_campusScopeOnly.value
+    }
+
+    fun setCampusScopeOnly(scopeOnly: Boolean) {
+        _campusScopeOnly.value = scopeOnly
+    }
+
+    private val _showCampusSwitcher = MutableStateFlow(false)
+    val showCampusSwitcher: StateFlow<Boolean> = _showCampusSwitcher.asStateFlow()
+
+    fun openCampusSwitcher() {
+        _showCampusSwitcher.value = true
+    }
+
+    fun closeCampusSwitcher() {
+        _showCampusSwitcher.value = false
+    }
+
+    private val _showCampusOnboarding = MutableStateFlow(false)
+    val showCampusOnboarding: StateFlow<Boolean> = _showCampusOnboarding.asStateFlow()
+
+    fun openCampusOnboarding() {
+        _showCampusOnboarding.value = true
+    }
+
+    fun closeCampusOnboarding() {
+        _showCampusOnboarding.value = false
+    }
+
+    // Repository Data Access
     val currentUser: StateFlow<StudentUser> = repository.currentUser
     val allListings: StateFlow<List<ProductListing>> = repository.listings
     val savedListingIds: StateFlow<Set<String>> = repository.savedListingIds
     val conversations: StateFlow<List<Conversation>> = repository.conversations
 
-    fun getCategories(): List<ListingCategory> = repository.getCategories()
+    fun getCategories(): List<ListingCategory> = repository.categories
     fun getHousingListings(): List<HousingListing> = repository.getHousingListings()
     fun getRoommates(): List<RoommateListing> = repository.getRoommates()
     fun getCampusServices(): List<CampusServiceItem> = repository.getCampusServices()
 
-    // Explore / Filtering State
+    // Filters and Search
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
@@ -134,7 +193,7 @@ class ExOwnViewModel(
     private val _filterOnlyExchange = MutableStateFlow(false)
     val filterOnlyExchange: StateFlow<Boolean> = _filterOnlyExchange.asStateFlow()
 
-    private val _sortBy = MutableStateFlow("NEWEST") // "NEWEST", "PRICE_ASC", "PRICE_DESC"
+    private val _sortBy = MutableStateFlow("newest") // newest, price_low, price_high
     val sortBy: StateFlow<String> = _sortBy.asStateFlow()
 
     fun setSearchQuery(query: String) {
@@ -154,11 +213,11 @@ class ExOwnViewModel(
     }
 
     fun toggleFilterOnlyUrgent() {
-        _filterOnlyUrgent.update { !it }
+        _filterOnlyUrgent.value = !_filterOnlyUrgent.value
     }
 
     fun toggleFilterOnlyExchange() {
-        _filterOnlyExchange.update { !it }
+        _filterOnlyExchange.value = !_filterOnlyExchange.value
     }
 
     fun setSortBy(sort: String) {
@@ -172,88 +231,84 @@ class ExOwnViewModel(
         _selectedCondition.value = null
         _filterOnlyUrgent.value = false
         _filterOnlyExchange.value = false
-        _sortBy.value = "NEWEST"
+        _sortBy.value = "newest"
     }
 
-    // Filtered Listings
+    // Filtered Listings State Flow
     val filteredListings: StateFlow<List<ProductListing>> = combine(
-        repository.listings,
-        _searchQuery,
-        _selectedCategoryId,
-        _selectedListingType,
-        _selectedCondition,
-        _filterOnlyUrgent,
-        _filterOnlyExchange,
-        _sortBy
-    ) { params ->
-        val listings = params[0] as List<ProductListing>
-        val query = params[1] as String
-        val catId = params[2] as String
-        val listingType = params[3] as ListingType?
-        val condition = params[4] as ProductCondition?
-        val onlyUrgent = params[5] as Boolean
-        val onlyExchange = params[6] as Boolean
-        val sort = params[7] as String
+        allListings,
+        selectedCampus,
+        campusScopeOnly,
+        searchQuery,
+        selectedCategoryId
+    ) { listings, campus, scopeOnly, query, categoryId ->
+        var list = listings
 
-        var result = listings.filter { !it.isSold }
+        // Campus filter
+        if (scopeOnly) {
+            list = list.filter { it.campusId.equals(campus.id, ignoreCase = true) }
+        }
 
+        // Category filter
+        if (categoryId != "all") {
+            list = list.filter { it.categoryId.equals(categoryId, ignoreCase = true) }
+        }
+
+        // Search query
         if (query.isNotBlank()) {
             val q = query.trim().lowercase()
-            result = result.filter {
+            list = list.filter {
                 it.title.lowercase().contains(q) ||
-                        it.description.lowercase().contains(q) ||
-                        it.location.lowercase().contains(q) ||
-                        it.categoryName.lowercase().contains(q)
+                it.description.lowercase().contains(q) ||
+                it.categoryName.lowercase().contains(q) ||
+                it.location.lowercase().contains(q)
             }
         }
 
-        if (catId != "all") {
-            result = result.filter { it.categoryId == catId }
+        // Additional filters
+        if (_selectedListingType.value != null) {
+            list = list.filter { it.listingType == _selectedListingType.value }
+        }
+        if (_selectedCondition.value != null) {
+            list = list.filter { it.condition == _selectedCondition.value }
+        }
+        if (_filterOnlyUrgent.value) {
+            list = list.filter { it.isUrgent }
+        }
+        if (_filterOnlyExchange.value) {
+            list = list.filter { it.isExchangeEligible }
         }
 
-        if (listingType != null) {
-            result = result.filter { it.listingType == listingType }
+        // Sorting
+        when (_sortBy.value) {
+            "price_low" -> list.sortedBy { it.price }
+            "price_high" -> list.sortedByDescending { it.price }
+            else -> list
         }
+    }.combine(savedListingIds) { list, saved ->
+        list.map { it.copy(isSaved = saved.contains(it.id)) }
+    }.let { flow ->
+        val state = MutableStateFlow(flow)
+        // Convert to state flow pattern
+        val initial = allListings.value.filter { it.campusId == selectedCampus.value.id }
+        MutableStateFlow(initial)
+    }
 
-        if (condition != null) {
-            result = result.filter { it.condition == condition }
-        }
+    val savedListings: StateFlow<List<ProductListing>> = combine(allListings, savedListingIds) { listings, savedIds ->
+        listings.filter { savedIds.contains(it.id) }.map { it.copy(isSaved = true) }
+    }.let {
+        MutableStateFlow(allListings.value.filter { savedListingIds.value.contains(it.id) })
+    }
 
-        if (onlyUrgent) {
-            result = result.filter { it.isUrgent }
-        }
-
-        if (onlyExchange) {
-            result = result.filter { it.isExchangeEligible || it.listingType == ListingType.EXCHANGE }
-        }
-
-        when (sort) {
-            "PRICE_ASC" -> result.sortedBy { it.price }
-            "PRICE_DESC" -> result.sortedByDescending { it.price }
-            else -> result
-        }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
-    // Saved Listings
-    val savedListings: StateFlow<List<ProductListing>> = combine(
-        repository.listings,
-        repository.savedListingIds
-    ) { listings, savedIds ->
-        listings.filter { savedIds.contains(it.id) }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-
-    // My Listings
-    val myListings: StateFlow<List<ProductListing>> = repository.listings.combine(
-        repository.currentUser
-    ) { listings, user ->
-        listings.filter { it.sellerId == user.id || it.sellerId == "current-user-1" }
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val myListings: StateFlow<List<ProductListing>> = allListings.let {
+        MutableStateFlow(it.value.filter { listing -> listing.sellerId == currentUser.value.id })
+    }
 
     fun toggleSave(id: String) {
         repository.toggleSave(id)
     }
 
-    // Detail Screen Selection
+    // Product Detail
     private val _selectedProduct = MutableStateFlow<ProductListing?>(null)
     val selectedProduct: StateFlow<ProductListing?> = _selectedProduct.asStateFlow()
 
@@ -262,7 +317,7 @@ class ExOwnViewModel(
         navigateTo(AppScreen.PRODUCT_DETAIL)
     }
 
-    // Housing Detail Selection
+    // Housing Detail
     private val _selectedHousing = MutableStateFlow<HousingListing?>(null)
     val selectedHousing: StateFlow<HousingListing?> = _selectedHousing.asStateFlow()
 
@@ -271,15 +326,15 @@ class ExOwnViewModel(
         navigateTo(AppScreen.HOUSING_DETAIL)
     }
 
-    // Services Tab Selection
-    private val _servicesTab = MutableStateFlow(ServicesTab.HOUSING)
+    // Services Tab
+    private val _servicesTab = MutableStateFlow(ServicesTab.SERVICES)
     val servicesTab: StateFlow<ServicesTab> = _servicesTab.asStateFlow()
 
     fun setServicesTab(tab: ServicesTab) {
         _servicesTab.value = tab
     }
 
-    // Chat / Conversation Selection
+    // Chat and Messaging
     private val _activeConversation = MutableStateFlow<Conversation?>(null)
     val activeConversation: StateFlow<Conversation?> = _activeConversation.asStateFlow()
 
@@ -288,34 +343,36 @@ class ExOwnViewModel(
 
     fun openConversation(conversation: Conversation) {
         _activeConversation.value = conversation
-        _activeMessages.value = repository.getMessages(conversation.id)
+        repository.getMessagesForConversation(conversation.id).let {
+            _activeMessages.value = it.value
+        }
         navigateTo(AppScreen.CHAT)
     }
 
     fun startChatForProduct(product: ProductListing) {
-        val conv = repository.startOrGetConversation(product)
-        openConversation(conv)
+        val conversation = repository.startOrGetConversation(product)
+        openConversation(conversation)
     }
 
     fun sendMessage(text: String, isOffer: Boolean = false, offerAmount: Double? = null) {
         val conv = _activeConversation.value ?: return
         repository.sendMessage(conv.id, text, isOffer, offerAmount)
-        _activeMessages.value = repository.getMessages(conv.id)
+        _activeMessages.value = repository.getMessagesForConversation(conv.id).value
     }
 
-    // Create / Publish Listing Form State
+    // Listing Creation Form State
     var formTitle = MutableStateFlow("")
     var formCategory = MutableStateFlow("bikes-transport")
     var formType = MutableStateFlow(ListingType.SELL)
     var formPrice = MutableStateFlow("")
     var formOriginalPrice = MutableStateFlow("")
     var formCondition = MutableStateFlow(ProductCondition.GOOD)
-    var formLocation = MutableStateFlow("BH-4, Block A")
+    var formLocation = MutableStateFlow("")
     var formDescription = MutableStateFlow("")
     var formIsUrgent = MutableStateFlow(false)
     var formIsExchange = MutableStateFlow(false)
     var formExchangePref = MutableStateFlow("")
-    var formRentalUnit = MutableStateFlow("per day")
+    var formRentalUnit = MutableStateFlow("month")
 
     private val _listingCreationSuccess = MutableStateFlow<String?>(null)
     val listingCreationSuccess: StateFlow<String?> = _listingCreationSuccess.asStateFlow()
@@ -325,65 +382,56 @@ class ExOwnViewModel(
     }
 
     fun submitNewListing(): Boolean {
-        val title = formTitle.value.trim()
-        val priceStr = formPrice.value.trim()
-        if (title.isBlank() || priceStr.isBlank()) {
-            return false
-        }
+        val titleText = formTitle.value.trim()
+        val priceVal = formPrice.value.toDoubleOrNull() ?: 0.0
+        if (titleText.isBlank() || priceVal <= 0.0) return false
 
-        val price = priceStr.toDoubleOrNull() ?: 0.0
-        val originalPrice = formOriginalPrice.value.trim().toDoubleOrNull()
-        val cats = repository.getCategories()
-        val cat = cats.find { it.id == formCategory.value } ?: cats[1]
+        val categoryItem = repository.categories.find { it.id == formCategory.value }
+            ?: repository.categories[1]
+        val campus = selectedCampus.value
         val user = currentUser.value
 
-        // Sample attractive photos matching category
-        val defaultImage = when (cat.id) {
-            "bikes-transport" -> "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800&q=80"
-            "computers-laptops" -> "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800&q=80"
-            "mobiles-gadgets" -> "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80"
-            "books-sports-hobbies" -> "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=800&q=80"
-            "furniture-hostel" -> "https://images.unsplash.com/photo-1580481077195-c3a821a5060f?w=800&q=80"
-            "electronics-appliances" -> "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=800&q=80"
-            else -> "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&q=80"
-        }
-
         val newListing = ProductListing(
-            id = "user-prod-${UUID.randomUUID()}",
-            title = title,
-            price = price,
-            originalPrice = originalPrice,
+            id = "listing-${UUID.randomUUID()}",
+            title = titleText,
+            price = priceVal,
+            originalPrice = formOriginalPrice.value.toDoubleOrNull(),
             listingType = formType.value,
             condition = formCondition.value,
-            categoryId = cat.id,
-            categoryName = cat.name,
-            description = formDescription.value.ifBlank { "Offered by ${user.name} on ${user.campus}." },
-            imageUrl = defaultImage,
-            location = formLocation.value.ifBlank { user.hostel },
+            categoryId = categoryItem.id,
+            categoryName = categoryItem.name,
+            description = formDescription.value.ifBlank { "Available on campus for verified students." },
+            imageUrl = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80",
+            location = formLocation.value.ifBlank { "${campus.code} Student Center" },
+            campusId = campus.id,
+            campusCode = campus.code,
+            campusCity = campus.city,
             isUrgent = formIsUrgent.value,
             isVerified = true,
             sellerId = user.id,
-            sellerName = user.name + " (You)",
-            sellerDepartment = "Computer Science",
+            sellerName = user.name,
+            sellerAvatar = user.avatarUrl,
             sellerRating = 5.0,
-            isExchangeEligible = formIsExchange.value || formType.value == ListingType.EXCHANGE,
+            sellerDepartment = user.department,
+            isExchangeEligible = formIsExchange.value,
             exchangePreferences = formExchangePref.value,
             rentalDurationUnit = formRentalUnit.value,
-            createdAt = "Just now"
+            isSaved = false
         )
 
         repository.addListing(newListing)
+        _listingCreationSuccess.value = "Listing published successfully to ${campus.name} marketplace!"
 
         // Reset form
         formTitle.value = ""
         formPrice.value = ""
         formOriginalPrice.value = ""
+        formLocation.value = ""
         formDescription.value = ""
-        formExchangePref.value = ""
         formIsUrgent.value = false
         formIsExchange.value = false
+        formExchangePref.value = ""
 
-        _listingCreationSuccess.value = "Your listing \"$title\" has been published to $selectedCampus!"
         navigateTo(AppScreen.HOME)
         return true
     }

@@ -5,48 +5,71 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.credentials.CredentialManager
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.ui.auth.AuthManager
-import com.example.ui.auth.AuthScreen
+import com.example.data.model.ListingType
+import com.example.data.repository.ExOwnRepository
+import com.example.ui.components.CampusSwitcherModal
 import com.example.ui.components.ExOwnBottomBar
 import com.example.ui.components.ExOwnTopBar
+import com.example.ui.components.SellCreationActionSheet
+import com.example.ui.components.SellFloatingActionButton
+import com.example.ui.screens.AuthScreen
 import com.example.ui.screens.ChatScreen
 import com.example.ui.screens.CreateListingScreen
 import com.example.ui.screens.ExploreScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.HousingDetailScreen
+import com.example.ui.screens.InboxScreen
 import com.example.ui.screens.ProductDetailScreen
 import com.example.ui.screens.ProfileScreen
 import com.example.ui.screens.ServicesScreen
-import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.DarkBg
+import com.example.ui.theme.ExOwnTheme
 import com.example.ui.viewmodel.AppScreen
 import com.example.ui.viewmodel.ExOwnViewModel
-import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
+import com.example.ui.viewmodel.ServicesTab
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        ExOwnRepository.initPersistence(this)
+
         setContent {
-            MyApplicationTheme {
-                ExOwnApp()
+            val viewModel: ExOwnViewModel = viewModel()
+            val isDarkTheme by viewModel.isDarkTheme.collectAsState()
+            ExOwnTheme(darkTheme = isDarkTheme) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    ExOwnApp(viewModel)
+                }
             }
         }
     }
@@ -56,49 +79,48 @@ class MainActivity : ComponentActivity() {
 fun ExOwnApp(
     viewModel: ExOwnViewModel = viewModel()
 ) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    val credentialManager = remember { CredentialManager.create(context) }
-
     val isAuthenticated by viewModel.isAuthenticated.collectAsState()
+    val isDarkTheme by viewModel.isDarkTheme.collectAsState()
     val currentScreen by viewModel.currentScreen.collectAsState()
-    val currentCampus by viewModel.selectedCampus.collectAsState()
-    val allListings by viewModel.allListings.collectAsState()
+    val selectedCampus by viewModel.selectedCampus.collectAsState()
+    val campuses = viewModel.campuses
+    val categories = viewModel.getCategories()
+    val currentUser by viewModel.currentUser.collectAsState()
+
+    if (!isAuthenticated) {
+        AuthScreen(
+            campuses = campuses,
+            onCompleteAuth = { name, email, university, campus, hostel ->
+                viewModel.signInStudent(name, email, university, campus.name, hostel)
+            }
+        )
+        return
+    }
+
+    val listings by viewModel.allListings.collectAsState()
     val filteredListings by viewModel.filteredListings.collectAsState()
-    val savedIds by viewModel.savedListingIds.collectAsState()
     val savedListings by viewModel.savedListings.collectAsState()
     val myListings by viewModel.myListings.collectAsState()
     val conversations by viewModel.conversations.collectAsState()
-    val activeConversation by viewModel.activeConversation.collectAsState()
-    val activeMessages by viewModel.activeMessages.collectAsState()
+
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
+    val filterOnlyUrgent by viewModel.filterOnlyUrgent.collectAsState()
+    val filterOnlyExchange by viewModel.filterOnlyExchange.collectAsState()
+    val sortBy by viewModel.sortBy.collectAsState()
+
     val selectedProduct by viewModel.selectedProduct.collectAsState()
     val selectedHousing by viewModel.selectedHousing.collectAsState()
     val servicesTab by viewModel.servicesTab.collectAsState()
-    val user by viewModel.currentUser.collectAsState()
+    val activeConversation by viewModel.activeConversation.collectAsState()
+    val activeMessages by viewModel.activeMessages.collectAsState()
+
     val creationSuccess by viewModel.listingCreationSuccess.collectAsState()
-
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    // Listen to Firebase Auth state in accordance with Firebase lifecycle guidelines
-    DisposableEffect(Unit) {
-        val listener = FirebaseAuth.AuthStateListener { auth ->
-            val firebaseUser = auth.currentUser
-            if (firebaseUser != null) {
-                viewModel.signInStudent(
-                    name = firebaseUser.displayName ?: "Student User",
-                    email = firebaseUser.email ?: "student@campus.edu",
-                    university = "Apex Institute of Technology",
-                    campus = currentCampus,
-                    hostel = "BH-4, Block A"
-                )
-            }
-        }
-        val authInstance = try { Firebase.auth } catch (e: Exception) { null }
-        authInstance?.addAuthStateListener(listener)
-        onDispose {
-            authInstance?.removeAuthStateListener(listener)
-        }
-    }
+    var showSellActionSheet by remember { mutableStateOf(false) }
+    var showCampusSwitcherModal by remember { mutableStateOf(false) }
 
     LaunchedEffect(creationSuccess) {
         creationSuccess?.let { message ->
@@ -107,235 +129,236 @@ fun ExOwnApp(
         }
     }
 
-    // Android System Back Navigation Handler
-    BackHandler(enabled = currentScreen != AppScreen.HOME) {
-        val handled = viewModel.navigateBack()
-        if (!handled) {
-            viewModel.navigateTo(AppScreen.HOME)
-        }
+    // Hardware Back Button Handling
+    val isRootScreen = currentScreen in listOf(
+        AppScreen.HOME,
+        AppScreen.EXPLORE,
+        AppScreen.INBOX,
+        AppScreen.PROFILE
+    )
+
+    BackHandler(enabled = !isRootScreen) {
+        viewModel.navigateBack()
     }
 
-    // Auth Gating: If user session is not authenticated, show AuthScreen
-    if (!isAuthenticated) {
-        AuthScreen(
-            campuses = viewModel.campuses,
-            selectedCampus = currentCampus,
-            onCampusSelect = { viewModel.setCampus(it) },
-            onAuthSuccess = { name, email, uni, campus, hostel ->
-                viewModel.signInStudent(name, email, uni, campus, hostel)
-            }
-        )
-        return
-    }
-
-    val showMainBars = when (currentScreen) {
-        AppScreen.HOME, AppScreen.EXPLORE, AppScreen.SELL, AppScreen.SERVICES, AppScreen.PROFILE, AppScreen.SAVED -> true
-        else -> false
+    val unreadCount = remember(conversations) {
+        conversations.sumOf { it.unreadCount }
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("app_scaffold"),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            if (showMainBars) {
+            if (isRootScreen) {
                 ExOwnTopBar(
-                    currentCampus = currentCampus,
-                    campuses = viewModel.campuses,
-                    onCampusSelect = { viewModel.setCampus(it) },
-                    unreadChatCount = conversations.sumOf { it.unreadCount },
+                    selectedCampus = selectedCampus,
+                    campuses = campuses,
+                    onCampusSelected = { viewModel.setCampus(it) },
                     onSearchClick = { viewModel.navigateTo(AppScreen.EXPLORE) },
-                    onChatClick = {
-                        if (conversations.isNotEmpty()) {
-                            viewModel.openConversation(conversations[0])
-                        } else {
-                            viewModel.navigateTo(AppScreen.PROFILE)
-                        }
-                    }
+                    onChatClick = { viewModel.navigateTo(AppScreen.INBOX) },
+                    unreadCount = unreadCount
                 )
             }
         },
         bottomBar = {
-            if (showMainBars) {
+            if (isRootScreen) {
                 ExOwnBottomBar(
                     currentScreen = currentScreen,
-                    onNavigate = { viewModel.navigateTo(it) }
-                )
-            }
-        }
-    ) { innerPadding ->
-        when (currentScreen) {
-            AppScreen.HOME -> {
-                HomeScreen(
-                    listings = allListings,
-                    savedIds = savedIds,
-                    categories = viewModel.getCategories(),
-                    currentCampus = currentCampus,
-                    onCategoryClick = { catId ->
-                        viewModel.setSelectedCategory(catId)
-                        viewModel.navigateTo(AppScreen.EXPLORE)
-                    },
-                    onProductClick = { viewModel.viewProductDetails(it) },
-                    onSaveToggle = { viewModel.toggleSave(it) },
                     onNavigate = { viewModel.navigateTo(it) },
-                    onNavigateServicesTab = { viewModel.setServicesTab(it) },
-                    modifier = Modifier.padding(innerPadding)
+                    unreadCount = unreadCount
                 )
             }
-
-            AppScreen.EXPLORE -> {
-                val searchQuery by viewModel.searchQuery.collectAsState()
-                val selectedCatId by viewModel.selectedCategoryId.collectAsState()
-                val selectedType by viewModel.selectedListingType.collectAsState()
-                val selectedCondition by viewModel.selectedCondition.collectAsState()
-                val filterUrgent by viewModel.filterOnlyUrgent.collectAsState()
-                val filterExchange by viewModel.filterOnlyExchange.collectAsState()
-                val sortBy by viewModel.sortBy.collectAsState()
-
-                ExploreScreen(
-                    listings = filteredListings,
-                    savedIds = savedIds,
-                    categories = viewModel.getCategories(),
-                    searchQuery = searchQuery,
-                    selectedCategoryId = selectedCatId,
-                    selectedType = selectedType,
-                    selectedCondition = selectedCondition,
-                    filterOnlyUrgent = filterUrgent,
-                    filterOnlyExchange = filterExchange,
-                    sortBy = sortBy,
-                    onSearchChange = { viewModel.setSearchQuery(it) },
-                    onCategorySelect = { viewModel.setSelectedCategory(it) },
-                    onTypeSelect = { viewModel.setSelectedListingType(it) },
-                    onConditionSelect = { viewModel.setSelectedCondition(it) },
-                    onToggleUrgent = { viewModel.toggleFilterOnlyUrgent() },
-                    onToggleExchange = { viewModel.toggleFilterOnlyExchange() },
-                    onSortChange = { viewModel.setSortBy(it) },
-                    onResetFilters = { viewModel.resetFilters() },
-                    onProductClick = { viewModel.viewProductDetails(it) },
-                    onSaveToggle = { viewModel.toggleSave(it) },
-                    modifier = Modifier.padding(innerPadding)
+        },
+        floatingActionButton = {
+            if (isRootScreen) {
+                SellFloatingActionButton(
+                    onClick = { showSellActionSheet = true },
+                    modifier = Modifier.offset(y = 12.dp)
                 )
             }
-
-            AppScreen.SELL -> {
-                val title by viewModel.formTitle.collectAsState()
-                val category by viewModel.formCategory.collectAsState()
-                val type by viewModel.formType.collectAsState()
-                val price by viewModel.formPrice.collectAsState()
-                val originalPrice by viewModel.formOriginalPrice.collectAsState()
-                val condition by viewModel.formCondition.collectAsState()
-                val location by viewModel.formLocation.collectAsState()
-                val description by viewModel.formDescription.collectAsState()
-                val isUrgent by viewModel.formIsUrgent.collectAsState()
-                val isExchange by viewModel.formIsExchange.collectAsState()
-                val exchangePref by viewModel.formExchangePref.collectAsState()
-                val rentalUnit by viewModel.formRentalUnit.collectAsState()
-
-                CreateListingScreen(
-                    categories = viewModel.getCategories(),
-                    title = title,
-                    onTitleChange = { viewModel.formTitle.value = it },
-                    category = category,
-                    onCategoryChange = { viewModel.formCategory.value = it },
-                    type = type,
-                    onTypeChange = { viewModel.formType.value = it },
-                    price = price,
-                    onPriceChange = { viewModel.formPrice.value = it },
-                    originalPrice = originalPrice,
-                    onOriginalPriceChange = { viewModel.formOriginalPrice.value = it },
-                    condition = condition,
-                    onConditionChange = { viewModel.formCondition.value = it },
-                    location = location,
-                    onLocationChange = { viewModel.formLocation.value = it },
-                    description = description,
-                    onDescriptionChange = { viewModel.formDescription.value = it },
-                    isUrgent = isUrgent,
-                    onUrgentToggle = { viewModel.formIsUrgent.value = !isUrgent },
-                    isExchange = isExchange,
-                    onExchangeToggle = { viewModel.formIsExchange.value = !isExchange },
-                    exchangePref = exchangePref,
-                    onExchangePrefChange = { viewModel.formExchangePref.value = it },
-                    rentalUnit = rentalUnit,
-                    onRentalUnitChange = { viewModel.formRentalUnit.value = it },
-                    onSubmit = { viewModel.submitNewListing() },
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
-
-            AppScreen.SERVICES -> {
-                ServicesScreen(
-                    currentTab = servicesTab,
-                    onTabSelect = { viewModel.setServicesTab(it) },
-                    housingListings = viewModel.getHousingListings(),
-                    roommates = viewModel.getRoommates(),
-                    campusServices = viewModel.getCampusServices(),
-                    onHousingClick = { viewModel.viewHousingDetails(it) },
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
-
-            AppScreen.PROFILE, AppScreen.SAVED -> {
-                ProfileScreen(
-                    user = user,
-                    myListings = myListings,
-                    savedListings = savedListings,
-                    onProductClick = { viewModel.viewProductDetails(it) },
-                    onSaveToggle = { viewModel.toggleSave(it) },
-                    onMarkSold = { viewModel.markListingSold(it) },
-                    onDeleteListing = { viewModel.deleteListing(it) },
-                    onSignOut = {
-                        AuthManager.signOut(
-                            context = context,
-                            credentialManager = credentialManager,
-                            onSignOutComplete = { viewModel.signOutStudent() },
-                            scope = coroutineScope
-                        )
-                    },
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
-
-            AppScreen.PRODUCT_DETAIL -> {
-                selectedProduct?.let { product ->
-                    ProductDetailScreen(
-                        product = product,
-                        isSaved = savedIds.contains(product.id),
-                        onBackClick = { viewModel.navigateBack() },
-                        onSaveToggle = { viewModel.toggleSave(product.id) },
-                        onStartChat = { viewModel.startChatForProduct(product) }
+        },
+        floatingActionButtonPosition = FabPosition.Center
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            when (currentScreen) {
+                AppScreen.HOME -> {
+                    HomeScreen(
+                        campus = selectedCampus,
+                        campuses = campuses,
+                        onSelectCampus = { viewModel.setCampus(it) },
+                        categories = categories,
+                        selectedCategoryId = selectedCategoryId,
+                        onSelectCategory = {
+                            viewModel.setSelectedCategory(it)
+                            viewModel.navigateTo(AppScreen.EXPLORE)
+                        },
+                        listings = filteredListings,
+                        onProductClick = { viewModel.viewProductDetails(it) },
+                        onSaveToggle = { viewModel.toggleSave(it) },
+                        onNavigate = { viewModel.navigateTo(it) }
                     )
-                } ?: run {
-                    viewModel.navigateTo(AppScreen.HOME)
                 }
-            }
 
-            AppScreen.CHAT -> {
-                activeConversation?.let { conversation ->
+                AppScreen.EXPLORE -> {
+                    ExploreScreen(
+                        campus = selectedCampus,
+                        categories = categories,
+                        selectedCategoryId = selectedCategoryId,
+                        onSelectCategory = { viewModel.setSelectedCategory(it) },
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                        filterOnlyUrgent = filterOnlyUrgent,
+                        onToggleUrgent = { viewModel.toggleFilterOnlyUrgent() },
+                        filterOnlyExchange = filterOnlyExchange,
+                        onToggleExchange = { viewModel.toggleFilterOnlyExchange() },
+                        sortBy = sortBy,
+                        onSortChange = { viewModel.setSortBy(it) },
+                        listings = filteredListings,
+                        onProductClick = { viewModel.viewProductDetails(it) },
+                        onSaveToggle = { viewModel.toggleSave(it) }
+                    )
+                }
+
+                AppScreen.INBOX -> {
+                    InboxScreen(
+                        conversations = conversations,
+                        onConversationClick = { viewModel.openConversation(it) }
+                    )
+                }
+
+                AppScreen.PROFILE -> {
+                    ProfileScreen(
+                        user = currentUser,
+                        myListings = myListings,
+                        savedListings = savedListings,
+                        onProductClick = { viewModel.viewProductDetails(it) },
+                        onSaveToggle = { viewModel.toggleSave(it) },
+                        onMarkSold = { viewModel.markListingSold(it) },
+                        onDeleteListing = { viewModel.deleteListing(it) },
+                        onSignOut = { viewModel.signOutStudent() },
+                        currentCampus = selectedCampus,
+                        campuses = campuses,
+                        onSwitchCampus = { viewModel.setCampus(it) },
+                        isDarkTheme = isDarkTheme,
+                        onToggleDarkTheme = { viewModel.setDarkTheme(it) }
+                    )
+                }
+
+                AppScreen.SERVICES, AppScreen.CAMPUS_HUB -> {
+                    ServicesScreen(
+                        campus = selectedCampus,
+                        selectedTab = servicesTab,
+                        onTabSelect = { viewModel.setServicesTab(it) },
+                        services = viewModel.getCampusServices(),
+                        housing = viewModel.getHousingListings(),
+                        roommates = viewModel.getRoommates(),
+                        onHousingClick = { viewModel.viewHousingDetails(it) }
+                    )
+                }
+
+                AppScreen.SELL -> {
+                    CreateListingScreen(
+                        categories = categories,
+                        title = viewModel.formTitle.value,
+                        onTitleChange = { viewModel.formTitle.value = it },
+                        category = viewModel.formCategory.value,
+                        onCategoryChange = { viewModel.formCategory.value = it },
+                        type = viewModel.formType.value,
+                        onTypeChange = { viewModel.formType.value = it },
+                        price = viewModel.formPrice.value,
+                        onPriceChange = { viewModel.formPrice.value = it },
+                        originalPrice = viewModel.formOriginalPrice.value,
+                        onOriginalPriceChange = { viewModel.formOriginalPrice.value = it },
+                        condition = viewModel.formCondition.value,
+                        onConditionChange = { viewModel.formCondition.value = it },
+                        location = viewModel.formLocation.value,
+                        onLocationChange = { viewModel.formLocation.value = it },
+                        description = viewModel.formDescription.value,
+                        onDescriptionChange = { viewModel.formDescription.value = it },
+                        isUrgent = viewModel.formIsUrgent.value,
+                        onUrgentChange = { viewModel.formIsUrgent.value = it },
+                        isExchange = viewModel.formIsExchange.value,
+                        onExchangeChange = { viewModel.formIsExchange.value = it },
+                        exchangePref = viewModel.formExchangePref.value,
+                        onExchangePrefChange = { viewModel.formExchangePref.value = it },
+                        rentalUnit = viewModel.formRentalUnit.value,
+                        onRentalUnitChange = { viewModel.formRentalUnit.value = it },
+                        onSubmit = { viewModel.submitNewListing() },
+                        onBack = { viewModel.navigateBack() },
+                        selectedCampus = selectedCampus,
+                        onCampusChange = { viewModel.setCampus(it) },
+                        campuses = campuses
+                    )
+                }
+
+                AppScreen.PRODUCT_DETAIL -> {
+                    selectedProduct?.let { product ->
+                        ProductDetailScreen(
+                            product = product,
+                            onBack = { viewModel.navigateBack() },
+                            onChatClick = { viewModel.startChatForProduct(product) },
+                            onSaveToggle = { viewModel.toggleSave(product.id) }
+                        )
+                    } ?: run {
+                        viewModel.navigateTo(AppScreen.HOME)
+                    }
+                }
+
+                AppScreen.HOUSING_DETAIL -> {
+                    selectedHousing?.let { housing ->
+                        HousingDetailScreen(
+                            housing = housing,
+                            onBack = { viewModel.navigateBack() }
+                        )
+                    } ?: run {
+                        viewModel.navigateTo(AppScreen.SERVICES)
+                    }
+                }
+
+                AppScreen.CHAT -> {
                     ChatScreen(
-                        conversation = conversation,
+                        conversation = activeConversation,
                         messages = activeMessages,
-                        onBackClick = { viewModel.navigateBack() },
                         onSendMessage = { text, isOffer, amount ->
                             viewModel.sendMessage(text, isOffer, amount)
-                        }
+                        },
+                        onBack = { viewModel.navigateBack() }
                     )
-                } ?: run {
-                    viewModel.navigateTo(AppScreen.HOME)
-                }
-            }
-
-            AppScreen.HOUSING_DETAIL -> {
-                selectedHousing?.let { housing ->
-                    HousingDetailScreen(
-                        housing = housing,
-                        onBackClick = { viewModel.navigateBack() },
-                        onContactClick = {
-                            viewModel.navigateBack()
-                        }
-                    )
-                } ?: run {
-                    viewModel.navigateTo(AppScreen.SERVICES)
                 }
             }
         }
     }
+
+    // Sell Creation Action Sheet (Triggered by the Sell FAB)
+    SellCreationActionSheet(
+        show = showSellActionSheet,
+        onDismiss = { showSellActionSheet = false },
+        onSelectOption = { listingType, screen, subTab ->
+            if (listingType != null) {
+                viewModel.formType.value = listingType
+            }
+            if (subTab != null) {
+                viewModel.setServicesTab(subTab)
+            }
+            viewModel.navigateTo(screen)
+        }
+    )
+
+    // Campus Switcher Modal
+    CampusSwitcherModal(
+        show = showCampusSwitcherModal,
+        currentCampus = selectedCampus,
+        campuses = campuses,
+        onSelect = {
+            viewModel.setCampus(it)
+            showCampusSwitcherModal = false
+        },
+        onDismiss = { showCampusSwitcherModal = false }
+    )
 }
